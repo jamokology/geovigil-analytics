@@ -105,16 +105,6 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap');
 
-/* ── Hide Streamlit chrome (keep top menu) ── */
-[data-testid="stToolbar"]         { display: none !important; }
-[data-testid="stDecoration"]      { display: none !important; }
-[data-testid="stStatusWidget"]    { display: none !important; }
-[data-testid="stAppDeployButton"] { display: none !important; }
-[data-testid="stBottom"]          { display: none !important; }
-[data-testid="stBottomBlockContainer"] { display: none !important; }
-[class*="viewerBadge"]            { display: none !important; }
-footer                            { display: none !important; }
-
 /* ── Base ── */
 [data-testid="stAppViewContainer"] { background: #0f1117; }
 [data-testid="stMain"] { padding: 0.75rem 1rem 1rem; }
@@ -337,39 +327,6 @@ for _, row in df_filtered.iterrows():
         popup=folium.Popup(popup_html, max_width=240),
         tooltip=f"{row['confidence']*100:.1f}%",
     ).add_to(m)
-
-# JSでStreamlitバッジをポーリング削除（CSSでは消えない場合の保険）
-st.markdown("""
-<script>
-(function() {
-    function purge() {
-        const doc = window.parent.document;
-        // "Hosted by Streamlit" バッジ・フッター系を全て削除
-        const selectors = [
-            '[class*="viewerBadge"]',
-            '[data-testid="stBottom"]',
-            '[data-testid="stBottomBlockContainer"]',
-            'footer',
-        ];
-        selectors.forEach(sel => {
-            doc.querySelectorAll(sel).forEach(el => el.remove());
-        });
-        // footer テキストを含む要素も削除
-        doc.querySelectorAll('div, span, a').forEach(el => {
-            if (el.children.length === 0 &&
-                el.textContent.includes('Streamlit') &&
-                el.closest('footer,#footer,[class*="footer"],[class*="Badge"]')) {
-                el.closest('[class*="Badge"],[class*="badge"],[class*="footer"]')?.remove();
-            }
-        });
-    }
-    purge();
-    // Streamlit は動的に DOM を更新するので一定間隔で再実行
-    const interval = setInterval(purge, 800);
-    setTimeout(() => clearInterval(interval), 15000);
-})();
-</script>
-""", unsafe_allow_html=True)
 
 st_folium(m, use_container_width=True, height=580, returned_objects=[])
 
