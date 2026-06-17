@@ -43,16 +43,19 @@
 
     /* ── Sidebar ── */
     .sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
       width: 270px;
-      flex-shrink: 0;
       background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       overflow-y: auto;
-      z-index: 100;
+      z-index: 200;
+      transform: translateX(-100%);
       transition: transform 0.25s ease;
     }
+    .sidebar.open { transform: translateX(0); }
     .sidebar-inner { padding: 20px 18px; display: flex; flex-direction: column; gap: 18px; }
 
     /* ── Main ── */
@@ -65,12 +68,14 @@
 
     /* ── Header ── */
     .header {
-      padding: 16px 20px 12px;
+      padding: 14px 20px 12px;
       border-bottom: 1px solid var(--border);
       background: var(--bg);
       flex-shrink: 0;
+      position: relative;
     }
-    .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .header-center { flex: 1; text-align: center; }
     .title {
       font-family: 'Cormorant Garamond', Georgia, serif;
       font-size: clamp(2.4rem, 6vw, 4rem);
@@ -190,20 +195,23 @@
     }
     .btn-lang:hover { background: #2d333b; }
 
-    /* ── Menu button (mobile) ── */
-    .btn-menu {
-      display: none;
+    /* ── Icon button (menu / map toggle) ── */
+    .btn-icon {
+      display: flex;
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text);
       width: 42px; height: 42px;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       cursor: pointer;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      transition: background 0.15s;
     }
+    .btn-icon:hover { background: #2d333b; }
+    .btn-icon.active { background: #1f3550; border-color: var(--accent); color: var(--accent); }
 
     /* ── Divider ── */
     hr { border: none; border-top: 1px solid var(--border); }
@@ -261,27 +269,14 @@
     .popup-row { font-size: 0.82rem; color: var(--muted); margin-top: 6px; line-height: 1.7; }
     .popup-divider { border-top: 1px solid var(--border); margin: 8px 0; }
 
-    /* ── Overlay (mobile sidebar) ── */
+    /* ── Overlay ── */
     .overlay {
       display: none;
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.55);
-      z-index: 99;
+      z-index: 199;
     }
-
-    /* ── Mobile ── */
-    @media (max-width: 700px) {
-      .sidebar {
-        position: fixed;
-        top: 0; left: 0; bottom: 0;
-        transform: translateX(-100%);
-        z-index: 200;
-      }
-      .sidebar.open { transform: translateX(0); }
-      .overlay.open { display: block; }
-      .btn-menu { display: flex; }
-      body, html { overflow: hidden; }
-    }
+    .overlay.open { display: block; }
   </style>
 </head>
 <body>
@@ -340,14 +335,14 @@
     <!-- Header -->
     <div class="header">
       <div class="header-row">
-        <div>
+        <button class="btn-icon" onclick="toggleSidebar()" id="btn-menu" title="Menu">☰</button>
+        <div class="header-center">
           <div class="title">🛰️ Orbit Sentinel</div>
           <div class="subtitle" data-i18n="subtitle">Detección de pistas clandestinas · Perú</div>
-          <div class="caption" data-i18n="caption">Resultados del análisis por IA de imágenes satelitales</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:flex-start;flex-shrink:0">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-icon" onclick="toggleMapTile()" id="btn-tile" title="Satellite view">🛰</button>
           <button class="btn-lang" onclick="toggleLang()" id="btn-lang-top">🇬🇧 English</button>
-          <button class="btn-menu" id="btn-menu" onclick="openSidebar()">☰</button>
         </div>
       </div>
     </div>
@@ -490,11 +485,35 @@ function tierColor(conf) {
 // ── Map ───────────────────────────────────────────────────────────────────
 const map = L.map("map", { zoomControl: true, tap: true }).setView([-9.19, -75.0], 6);
 
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-  attribution: '© <a href="https://carto.com">CARTO</a>',
-  subdomains: "abcd",
-  maxZoom: 19,
-}).addTo(map);
+const TILES = {
+  street: L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    attribution: '© <a href="https://carto.com">CARTO</a>',
+    subdomains: "abcd", maxZoom: 19,
+  }),
+  satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    attribution: '© <a href="https://www.esri.com">Esri</a>',
+    maxZoom: 19,
+  }),
+};
+TILES.street.addTo(map);
+let currentTile = "street";
+
+function toggleMapTile() {
+  const btn = document.getElementById("btn-tile");
+  if (currentTile === "street") {
+    map.removeLayer(TILES.street);
+    TILES.satellite.addTo(map);
+    currentTile = "satellite";
+    btn.classList.add("active");
+    btn.title = "Street view";
+  } else {
+    map.removeLayer(TILES.satellite);
+    TILES.street.addTo(map);
+    currentTile = "street";
+    btn.classList.remove("active");
+    btn.title = "Satellite view";
+  }
+}
 
 let markers = [];
 
@@ -570,14 +589,21 @@ function toggleTable() {
   setTimeout(() => map.invalidateSize(), 310);
 }
 
-// ── Sidebar (mobile) ──────────────────────────────────────────────────────
-function openSidebar() {
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("overlay").classList.add("open");
+// ── Sidebar ───────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  const sb  = document.getElementById("sidebar");
+  const ov  = document.getElementById("overlay");
+  const btn = document.getElementById("btn-menu");
+  const isOpen = sb.classList.toggle("open");
+  ov.classList.toggle("open", isOpen);
+  btn.classList.toggle("active", isOpen);
+  setTimeout(() => map.invalidateSize(), 260);
 }
 function closeSidebar() {
   document.getElementById("sidebar").classList.remove("open");
   document.getElementById("overlay").classList.remove("open");
+  document.getElementById("btn-menu").classList.remove("active");
+  setTimeout(() => map.invalidateSize(), 260);
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────
