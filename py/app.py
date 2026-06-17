@@ -106,9 +106,11 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap');
 
 /* ── Hide Streamlit chrome ── */
-#MainMenu, footer, header { visibility: hidden; }
+footer { visibility: hidden; }
 [data-testid="stToolbar"] { display: none; }
 [data-testid="stDecoration"] { display: none; }
+[data-testid="stStatusWidget"] { display: none; }
+[data-testid="stAppDeployButton"] { display: none; }
 
 /* ── Base ── */
 [data-testid="stAppViewContainer"] { background: #0f1117; }
