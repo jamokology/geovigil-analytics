@@ -103,6 +103,13 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap');
+
+/* ── Hide Streamlit chrome ── */
+#MainMenu, footer, header { visibility: hidden; }
+[data-testid="stToolbar"] { display: none; }
+[data-testid="stDecoration"] { display: none; }
+
 /* ── Base ── */
 [data-testid="stAppViewContainer"] { background: #0f1117; }
 [data-testid="stMain"] { padding: 0.75rem 1rem 1rem; }
@@ -128,17 +135,20 @@ st.markdown("""
 
 /* ── Header ── */
 .orbit-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
     color: #e6edf3;
-    font-size: clamp(1.4rem, 5vw, 2rem);
-    font-weight: 700;
-    letter-spacing: -0.5px;
+    font-size: clamp(2rem, 7vw, 3.2rem);
+    font-weight: 600;
+    letter-spacing: 0.04em;
     margin: 0;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 .orbit-subtitle {
     color: #8b949e;
     font-size: clamp(0.75rem, 3vw, 0.95rem);
-    margin: 3px 0 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 5px 0 0;
 }
 .orbit-caption {
     color: #58a6ff;
@@ -289,7 +299,7 @@ df_filtered = DETECTIONS[DETECTIONS["confidence"] >= min_conf].reset_index(drop=
 m = folium.Map(
     location=[-9.19, -75.0],
     zoom_start=6,
-    tiles="CartoDB dark_matter",
+    tiles="CartoDB positron",
 )
 
 # タッチ操作用にピンチズーム・タップポップアップを有効化
