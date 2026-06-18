@@ -235,6 +235,21 @@
     .zoom-ctrl.zoomed .zoom-ctrl-btn { color: var(--accent); }
     .zoom-ctrl.zoomed .zoom-ctrl-btn .zicon { transform: scale(1.2); }
 
+    /* ── Card action buttons ── */
+    .card-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .card-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 7px; padding: 6px 4px;
+      font-size: 0.72rem; color: var(--muted);
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .card-btn:hover { background: rgba(255,255,255,0.13); color: var(--text); }
+    .card-btn.copied { background: rgba(63,185,80,0.2); border-color: var(--green); color: var(--green); }
+    .card-coord { cursor: pointer; }
+    .card-coord:active { opacity: 0.6; }
+
     /* ── Location pulse ── */
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:.9} 50%{transform:scale(1.6);opacity:.3} }
     .loc-pulse { width:14px;height:14px;border-radius:50%;background:#58a6ff;box-shadow:0 0 0 3px rgba(88,166,255,.4);animation:pulse 2s infinite; }
@@ -377,6 +392,10 @@ const TEXTS = {
     strip_show:           "Mostrar detecciones",
     zoom_in:              "Ver pista",
     zoom_out:             "Vista general",
+    btn_maps:             "Maps",
+    btn_copy:             "Copiar",
+    btn_copied:           "¡Copiado!",
+    maps_confirm:         "¿Abrir Google Maps en esta ubicación?",
   },
   en: {
     filter_header:        "Minimum confidence",
@@ -402,6 +421,10 @@ const TEXTS = {
     strip_show:           "Show detections",
     zoom_in:              "View runway",
     zoom_out:             "Overview",
+    btn_maps:             "Maps",
+    btn_copy:             "Copy",
+    btn_copied:           "Copied!",
+    maps_confirm:         "Open this location in Google Maps?",
   },
 };
 let lang = "es";
@@ -723,16 +746,67 @@ function renderCards() {
   strip.innerHTML = filteredIndices.map((detIdx, fi) => {
     const d     = DETECTIONS[detIdx];
     const color = tierColor(d.conf);
-    const geo      = geoCache[detIdx] || "—";
-    const distLine = `<div class="card-district">🏛 ${geo}</div>`;
+    const geo   = geoCache[detIdx] || "—";
+    const coord = `${d.lat.toFixed(4)}, ${d.lon.toFixed(4)}`;
     return `<div class="card" data-fi="${fi}" onclick="selectFi(${fi}, true)">
       <div class="card-conf" style="color:${color}">${(d.conf*100).toFixed(1)}%</div>
       <div class="card-row">📅 <span>${d.date}</span></div>
-      <div class="card-row">📍 <span>${d.lat.toFixed(3)}, ${d.lon.toFixed(3)}</span></div>
-      ${distLine}
+      <div class="card-row card-coord" onclick="copyCoord(event,'${coord}')" title="${t.btn_copy}">
+        📍 <span>${coord}</span>
+      </div>
+      <div class="card-district">🏛 ${geo}</div>
+      <div class="card-actions">
+        <button class="card-btn" id="copy-btn-${fi}"
+          onclick="copyCoord(event,'${coord}','copy-btn-${fi}')">
+          📋 ${t.btn_copy}
+        </button>
+        <button class="card-btn"
+          onclick="openMaps(event,${d.lat},${d.lon})">
+          🗺 ${t.btn_maps}
+        </button>
+      </div>
     </div>`;
   }).join("");
   strip.onscroll = onStripScroll;
+}
+
+// ── Card actions ───────────────────────────────────────────────────────────
+function copyCoord(event, coord, btnId) {
+  event.stopPropagation();
+  navigator.clipboard.writeText(coord).then(() => {
+    if (!btnId) return;
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    const t = TEXTS[lang];
+    const orig = btn.innerHTML;
+    btn.innerHTML = `✅ ${t.btn_copied}`;
+    btn.classList.add("copied");
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove("copied"); }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers / HTTP
+    const ta = document.createElement("textarea");
+    ta.value = coord; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); document.execCommand("copy");
+    document.body.removeChild(ta);
+    if (btnId) {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        const t = TEXTS[lang];
+        const orig = btn.innerHTML;
+        btn.innerHTML = `✅ ${t.btn_copied}`;
+        btn.classList.add("copied");
+        setTimeout(() => { btn.innerHTML = orig; btn.classList.remove("copied"); }, 2000);
+      }
+    }
+  });
+}
+
+function openMaps(event, lat, lon) {
+  event.stopPropagation();
+  const t = TEXTS[lang];
+  if (confirm(t.maps_confirm)) {
+    window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`, "_blank");
+  }
 }
 
 function scrollCardTo(fi) {
