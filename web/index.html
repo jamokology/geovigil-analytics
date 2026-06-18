@@ -148,6 +148,7 @@
     input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; background: var(--border); border-radius: 2px; outline: none; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 2px solid var(--bg); }
     input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 2px solid var(--bg); }
+    /* dual-range thumbs inherit above; keep accent fill via JS gradient */
     .filter-select {
       width: 100%; background: var(--surface2); border: 1px solid var(--border);
       border-radius: 8px; color: var(--text); padding: 8px 10px;
@@ -861,12 +862,21 @@ function toggleStrip() {
 
 
 // ── Slider sync ────────────────────────────────────────────────────────────
+function updateConfSliderFill(val) {
+  const pct    = val + "%";
+  // Right side (val→100%) = accent, left side (0→val%) = border color
+  const grad   = `linear-gradient(to right, var(--border) 0%, var(--border) ${pct}, var(--accent) ${pct}, var(--accent) 100%)`;
+  document.getElementById("sb-slider").style.background   = grad;
+  document.getElementById("main-slider").style.background = grad;
+}
+
 function syncSlider(source) {
   const val = document.getElementById(source === "sb" ? "sb-slider" : "main-slider").value;
   document.getElementById("sb-slider").value   = val;
   document.getElementById("main-slider").value = val;
   document.getElementById("sb-conf-val").textContent   = val;
   document.getElementById("main-conf-val").textContent = val + "%";
+  updateConfSliderFill(val);
   renderAll();
 }
 
@@ -888,6 +898,7 @@ function toggleSidebar() {
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById("sb-conf-val").textContent   = "50";
 document.getElementById("main-conf-val").textContent = "50%";
+updateConfSliderFill(50);
 initDateRange();
 populateDistrictChecklist();
 renderAll();
