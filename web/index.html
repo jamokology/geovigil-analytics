@@ -235,6 +235,18 @@
     .zoom-ctrl.zoomed .zoom-ctrl-btn { color: var(--accent); }
     .zoom-ctrl.zoomed .zoom-ctrl-btn .zicon { transform: scale(1.2); }
 
+    /* ── Copied toast ── */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(10px);
+      background: rgba(63,185,80,0.92); color: #fff;
+      padding: 7px 18px; border-radius: 20px; font-size: 0.82rem; font-weight: 500;
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 9999; white-space: nowrap;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
     /* ── Card coordinate copy ── */
     .card-coord-row { display: flex; align-items: center; gap: 4px; }
     .copy-icon {
@@ -253,6 +265,7 @@
   </style>
 </head>
 <body>
+<div class="toast" id="toast"></div>
 <div class="layout">
 
   <!-- Sidebar -->
@@ -393,6 +406,7 @@ const TEXTS = {
     btn_copy:             "Copiar",
     btn_copied:           "¡Copiado!",
     maps_confirm:         "¿Abrir Google Maps en esta ubicación?",
+    my_location:          "Tu ubicación",
   },
   en: {
     filter_header:        "Minimum confidence",
@@ -422,6 +436,7 @@ const TEXTS = {
     btn_copy:             "Copy",
     btn_copied:           "Copied!",
     maps_confirm:         "Open this location in Google Maps?",
+    my_location:          "Your location",
   },
 };
 let lang = "es";
@@ -438,6 +453,7 @@ function applyLang() {
   refreshSelectLabels();
   renderAll();
   updateZoomBtn();
+  if (locationMarker) locationMarker.setTooltipContent(`📍 ${TEXTS[lang].my_location}`);
 }
 function toggleLang() { lang = lang === "es" ? "en" : "es"; applyLang(); }
 
@@ -547,12 +563,13 @@ function zoomToSelected() {
 }
 
 // ── Current location ───────────────────────────────────────────────────────
+let locationMarker = null;
 if (navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(pos => {
     const { latitude: lat, longitude: lon } = pos.coords;
     const icon = L.divIcon({ className: '', html: '<div class="loc-pulse"></div>', iconSize: [14,14], iconAnchor: [7,7] });
-    L.marker([lat, lon], { icon }).addTo(map)
-      .bindTooltip("📍 Tu ubicación", { permanent: false });
+    locationMarker = L.marker([lat, lon], { icon }).addTo(map)
+      .bindTooltip(`📍 ${TEXTS[lang].my_location}`, { permanent: false });
   }, () => {});
 }
 
@@ -751,8 +768,8 @@ function renderCards() {
       <div class="card-row">📅 <span>${d.date}</span></div>
       <div class="card-row card-coord-row">
         <span>📍 <span>${coord}</span></span>
-        <span class="copy-icon" id="copy-icon-${fi}"
-          onclick="copyCoord(event,'${coord}','copy-icon-${fi}')"
+        <span class="copy-icon"
+          onclick="copyCoord(event,'${coord}')"
           title="${t.btn_copy}">⧉</span>
         <a class="copy-icon" href="${mapsUrl}" target="_blank" rel="noopener"
           onclick="event.stopPropagation()" title="${t.btn_maps}">🗺</a>
@@ -764,34 +781,33 @@ function renderCards() {
 }
 
 // ── Card actions ───────────────────────────────────────────────────────────
-function copyCoord(event, coord, btnId) {
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
+}
+
+function copyCoord(event, coord) {
   event.stopPropagation();
-  navigator.clipboard.writeText(coord).then(() => {
-    if (!btnId) return;
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    const t = TEXTS[lang];
-    const orig = btn.innerHTML;
-    btn.innerHTML = `✅ ${t.btn_copied}`;
-    btn.classList.add("copied");
-    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove("copied"); }, 2000);
-  }).catch(() => {
-    // Fallback for older browsers / HTTP
-    const ta = document.createElement("textarea");
-    ta.value = coord; ta.style.position = "fixed"; ta.style.opacity = "0";
-    document.body.appendChild(ta); ta.select(); document.execCommand("copy");
-    document.body.removeChild(ta);
-    if (btnId) {
-      const btn = document.getElementById(btnId);
-      if (btn) {
-        const t = TEXTS[lang];
-        const orig = btn.innerHTML;
-        btn.innerHTML = `✅ ${t.btn_copied}`;
-        btn.classList.add("copied");
-        setTimeout(() => { btn.innerHTML = orig; btn.classList.remove("copied"); }, 2000);
-      }
-    }
-  });
+  const t = TEXTS[lang];
+  const doShow = () => showToast(`✅ ${t.btn_copied}  ${coord}`);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(coord).then(doShow).catch(() => {
+      fallbackCopy(coord); doShow();
+    });
+  } else {
+    fallbackCopy(coord); doShow();
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.style.cssText = "position:fixed;opacity:0";
+  document.body.appendChild(ta); ta.select(); document.execCommand("copy");
+  document.body.removeChild(ta);
 }
 
 
