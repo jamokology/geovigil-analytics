@@ -780,9 +780,9 @@ function renderCards() {
           onclick="copyCoord(event,'${coord}','copy-act-${fi}')" title="${t.btn_copy}">⧉</button>
         <a class="card-act" href="${mapsUrl}" target="_blank" rel="noopener"
           onclick="event.stopPropagation()" title="${t.btn_maps}">🗺</a>
-        <button class="card-act"
+        <button class="card-act small-text"
           onclick="downloadGpx(event,${d.lat},${d.lon},'${(d.conf*100).toFixed(1)}','${d.date}','${geo}')"
-          title="GPX" class="card-act small-text">GPX</button>
+          title="GPX">GPX</button>
         <button class="card-act small-text"
           onclick="downloadKml(event,${d.lat},${d.lon},'${(d.conf*100).toFixed(1)}','${d.date}','${geo}')"
           title="KML">KML</button>
