@@ -174,27 +174,66 @@
     .popup-meta { font-size: 0.82rem; color: var(--muted); margin-top: 6px; line-height: 1.7; }
     .popup-divider { border-top: 1px solid var(--border); margin: 7px 0; }
 
+    /* ── Dual range slider ── */
+    .dual-range-wrap { position: relative; height: 28px; margin-top: 4px; }
+    .dual-range-wrap input[type=range] {
+      position: absolute; width: 100%; top: 50%; transform: translateY(-50%);
+      pointer-events: none; background: transparent;
+    }
+    .dual-range-wrap input[type=range]::-webkit-slider-thumb { pointer-events: all; }
+    .dual-range-wrap input[type=range]::-moz-range-thumb     { pointer-events: all; }
+    .dual-range-track {
+      position: absolute; height: 4px; border-radius: 2px;
+      top: 50%; transform: translateY(-50%);
+      left: 0; right: 0; background: var(--border);
+      pointer-events: none;
+    }
+    .dual-range-fill {
+      position: absolute; height: 4px; border-radius: 2px;
+      top: 50%; transform: translateY(-50%);
+      background: var(--accent); pointer-events: none;
+    }
+    .date-range-labels { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── District checkboxes ── */
+    .check-list {
+      display: flex; flex-direction: column; gap: 5px;
+      max-height: 130px; overflow-y: auto;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 10px;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .check-item { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; cursor: pointer; }
+    .check-item input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+    .check-item label { cursor: pointer; color: var(--text); }
+    .check-all { border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 2px; }
+
     /* ── Zoom control ── */
     .zoom-ctrl {
-      background: rgba(22,27,34,0.85) !important;
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      border: 1px solid var(--border) !important;
+      background: rgba(22,27,34,0.82) !important;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid var(--border) !important;
       border-radius: 10px !important;
-      padding: 0 !important;
-      overflow: hidden;
+      padding: 0 !important; overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .zoom-ctrl.zoomed {
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 0 1px rgba(88,166,255,0.4), 0 4px 20px rgba(88,166,255,0.2) !important;
     }
     .zoom-ctrl-btn {
-      display: flex; align-items: center; gap: 7px;
+      display: flex; align-items: center; gap: 8px;
       background: transparent; border: none;
       color: var(--text); font-family: 'Inter', sans-serif;
       font-size: 0.82rem; padding: 9px 14px;
       cursor: pointer; white-space: nowrap;
-      transition: background 0.15s;
+      transition: background 0.15s, color 0.2s;
       width: 100%;
     }
     .zoom-ctrl-btn:hover { background: rgba(255,255,255,0.07); }
-    .zoom-ctrl-btn .zicon { font-size: 1.1rem; }
-    .zoom-ctrl-btn.zoomed { color: var(--accent); }
+    .zoom-ctrl-btn .zicon { font-size: 1.05rem; transition: transform 0.3s; }
+    .zoom-ctrl.zoomed .zoom-ctrl-btn { color: var(--accent); }
+    .zoom-ctrl.zoomed .zoom-ctrl-btn .zicon { transform: scale(1.2); }
 
     /* ── Location pulse ── */
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:.9} 50%{transform:scale(1.6);opacity:.3} }
@@ -217,20 +256,30 @@
         <input type="range" id="sb-slider" min="0" max="100" value="50" step="5" oninput="syncSlider('sb')">
       </div>
 
-      <!-- Date filter -->
+      <!-- Date range filter -->
       <div>
         <div class="section-label" data-i18n="filter_date_label">Fecha de detección</div>
-        <select class="filter-select" id="filter-date" onchange="renderAll()">
-          <option value="all" data-i18n="filter_all">Todas</option>
-        </select>
+        <div class="dual-range-wrap" id="date-range-wrap">
+          <div class="dual-range-track"></div>
+          <div class="dual-range-fill" id="date-range-fill"></div>
+          <input type="range" id="date-range-min" min="0" value="0" step="1" oninput="onDateRange()">
+          <input type="range" id="date-range-max" min="0" value="0" step="1" oninput="onDateRange()">
+        </div>
+        <div class="date-range-labels">
+          <span id="date-label-min">—</span>
+          <span id="date-label-max">—</span>
+        </div>
       </div>
 
-      <!-- District filter -->
+      <!-- District multi-select -->
       <div>
         <div class="section-label" data-i18n="filter_district_label">Distrito / Provincia</div>
-        <select class="filter-select" id="filter-district" onchange="renderAll()">
-          <option value="all" data-i18n="filter_all">Todas</option>
-        </select>
+        <div class="check-list" id="district-checklist">
+          <div class="check-item check-all">
+            <input type="checkbox" id="dist-all" checked onchange="onDistAllToggle(this)">
+            <label for="dist-all" data-i18n="filter_all">Todas</label>
+          </div>
+        </div>
       </div>
 
       <hr>
@@ -442,18 +491,21 @@ const ZoomControl = L.Control.extend({
 new ZoomControl().addTo(map);
 
 function updateZoomBtn() {
-  const t   = TEXTS[lang];
-  const btn = document.getElementById('zoom-toggle-btn');
-  const txt = document.getElementById('zoom-btn-text');
+  const t    = TEXTS[lang];
+  const btn  = document.getElementById('zoom-toggle-btn');
+  const txt  = document.getElementById('zoom-btn-text');
+  const ctrl = btn?.closest('.zoom-ctrl');
   if (!btn) return;
   if (isZoomed) {
     btn.querySelector('.zicon').textContent = '🌍';
     txt.textContent = t.zoom_out;
     btn.classList.add('zoomed');
+    ctrl?.classList.add('zoomed');
   } else {
     btn.querySelector('.zicon').textContent = '🔍';
     txt.textContent = t.zoom_in;
     btn.classList.remove('zoomed');
+    ctrl?.classList.remove('zoomed');
   }
 }
 
@@ -484,45 +536,122 @@ if (navigator.geolocation) {
   }, () => {});
 }
 
+// ── Date range filter ──────────────────────────────────────────────────────
+const ALL_DATES = [...new Set(DETECTIONS.map(d => d.date))].sort();
+
+function initDateRange() {
+  const minEl = document.getElementById("date-range-min");
+  const maxEl = document.getElementById("date-range-max");
+  const max   = ALL_DATES.length - 1;
+  minEl.max = maxEl.max = max;
+  minEl.value = 0;
+  maxEl.value = max;
+  updateDateRangeUI();
+}
+
+function onDateRange() {
+  const minEl = document.getElementById("date-range-min");
+  const maxEl = document.getElementById("date-range-max");
+  let lo = parseInt(minEl.value), hi = parseInt(maxEl.value);
+  if (lo > hi) { [lo, hi] = [hi, lo]; minEl.value = lo; maxEl.value = hi; }
+  updateDateRangeUI();
+  renderAll();
+}
+
+function updateDateRangeUI() {
+  const minEl = document.getElementById("date-range-min");
+  const maxEl = document.getElementById("date-range-max");
+  const lo = parseInt(minEl.value), hi = parseInt(maxEl.value);
+  const total = ALL_DATES.length - 1 || 1;
+  document.getElementById("date-label-min").textContent = ALL_DATES[lo] || "—";
+  document.getElementById("date-label-max").textContent = ALL_DATES[hi] || "—";
+  // fill track
+  const fill = document.getElementById("date-range-fill");
+  fill.style.left  = (lo / total * 100) + "%";
+  fill.style.right = ((1 - hi / total) * 100) + "%";
+}
+
+function getSelectedDateRange() {
+  const lo = parseInt(document.getElementById("date-range-min").value);
+  const hi = parseInt(document.getElementById("date-range-max").value);
+  return { from: ALL_DATES[lo], to: ALL_DATES[hi] };
+}
+
+// ── District multi-select ──────────────────────────────────────────────────
+let selectedDistricts = new Set(); // empty = all
+
+function populateDistrictChecklist() {
+  const list  = document.getElementById("district-checklist");
+  const t     = TEXTS[lang];
+  const dists = [...new Set(geoCache.filter(d => d && d !== "—"))].sort();
+
+  // Keep existing selections
+  const allCheck = document.getElementById("dist-all");
+
+  // Remove old district items (keep the "all" row)
+  list.querySelectorAll(".dist-item").forEach(el => el.remove());
+
+  dists.forEach(d => {
+    const item = document.createElement("div");
+    item.className = "check-item dist-item";
+    const checked = selectedDistricts.size === 0 || selectedDistricts.has(d);
+    item.innerHTML = `<input type="checkbox" id="dist-${d}" ${checked ? "checked" : ""} onchange="onDistCheck()">
+                      <label for="dist-${d}">${d}</label>`;
+    list.appendChild(item);
+  });
+
+  // sync "all" checkbox
+  if (allCheck) allCheck.checked = selectedDistricts.size === 0;
+}
+
+function onDistAllToggle(el) {
+  selectedDistricts.clear();
+  document.querySelectorAll(".dist-item input").forEach(cb => { cb.checked = el.checked; });
+  if (!el.checked) {
+    // nothing selected → treat as all
+    el.checked = true;
+  }
+  renderAll();
+}
+
+function onDistCheck() {
+  const checks = [...document.querySelectorAll(".dist-item input")];
+  const checked = checks.filter(c => c.checked).map(c => {
+    const label = c.nextElementSibling?.textContent || "";
+    return label;
+  });
+  // get district names from labels
+  selectedDistricts = new Set(
+    [...document.querySelectorAll(".dist-item")]
+      .filter(item => item.querySelector("input").checked)
+      .map(item => item.querySelector("label").textContent)
+  );
+  if (selectedDistricts.size === checks.length) selectedDistricts.clear(); // all checked = no filter
+  const allCb = document.getElementById("dist-all");
+  if (allCb) allCb.checked = selectedDistricts.size === 0;
+  renderAll();
+}
+
 // ── Filters ────────────────────────────────────────────────────────────────
 function getFilteredIndices() {
-  const minConf   = parseInt(document.getElementById("main-slider").value) / 100;
-  const selDate   = document.getElementById("filter-date").value;
-  const selDist   = document.getElementById("filter-district").value;
+  const minConf  = parseInt(document.getElementById("main-slider").value) / 100;
+  const { from, to } = getSelectedDateRange();
 
   return DETECTIONS
     .map((d, i) => i)
     .filter(i => {
       const d = DETECTIONS[i];
       if (d.conf < minConf) return false;
-      if (selDate !== "all" && d.date !== selDate) return false;
-      if (selDist !== "all" && geoCache[i] !== selDist) return false;
+      if (from && d.date < from) return false;
+      if (to   && d.date > to)   return false;
+      if (selectedDistricts.size > 0 && !selectedDistricts.has(geoCache[i])) return false;
       return true;
     })
-    .sort((a, b) => DETECTIONS[b].conf - DETECTIONS[a].conf); // high → low
-}
-
-function populateDateSelect() {
-  const sel  = document.getElementById("filter-date");
-  const cur  = sel.value;
-  const t    = TEXTS[lang];
-  const dates = [...new Set(DETECTIONS.map(d => d.date))].sort();
-  sel.innerHTML = `<option value="all">${t.filter_all}</option>` +
-    dates.map(d => `<option value="${d}"${cur===d?' selected':''}>${d}</option>`).join("");
-}
-
-function populateDistrictSelect() {
-  const sel  = document.getElementById("filter-district");
-  const cur  = sel.value;
-  const t    = TEXTS[lang];
-  const dists = [...new Set(geoCache.filter(Boolean))].sort();
-  sel.innerHTML = `<option value="all">${t.filter_all}</option>` +
-    dists.map(d => `<option value="${d}"${cur===d?' selected':''}>${d}</option>`).join("");
+    .sort((a, b) => DETECTIONS[b].conf - DETECTIONS[a].conf);
 }
 
 function refreshSelectLabels() {
-  populateDateSelect();
-  populateDistrictSelect();
+  populateDistrictChecklist();
 }
 
 // ── Markers & selection ────────────────────────────────────────────────────
@@ -541,7 +670,11 @@ function renderAll() {
     const marker = L.circleMarker([d.lat, d.lon], {
       radius: 10, color, weight: 2, fillColor: color, fillOpacity: 0.75,
     });
-    marker.on('click', () => { selectFi(fi, true); scrollCardTo(fi); });
+    marker.on('click', () => {
+      if (stripCollapsed) toggleStrip();
+      selectFi(fi, true);
+      scrollCardTo(fi);
+    });
     marker.addTo(map);
     markerObjects.push({ marker, detIdx });
   });
@@ -711,8 +844,8 @@ function toggleSidebar() {
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById("sb-conf-val").textContent   = "50";
 document.getElementById("main-conf-val").textContent = "50%";
-populateDateSelect();
-populateDistrictSelect();
+initDateRange();
+populateDistrictChecklist();
 renderAll();
 setTimeout(() => { scrollCardTo(0); updateZoomBtn(); }, 100);
 prefetchGeo();
