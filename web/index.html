@@ -248,16 +248,22 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* ── Card coordinate copy ── */
-    .card-coord-row { display: flex; align-items: center; gap: 4px; }
-    .copy-icon {
-      font-size: 0.75rem; color: var(--muted); cursor: pointer;
-      padding: 2px 4px; border-radius: 4px;
-      transition: background 0.15s, color 0.15s;
-      flex-shrink: 0; line-height: 1;
+    /* ── Card coordinate & action row ── */
+    .card-coord-row { display: flex; align-items: center; }
+    .card-actions {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 5px; margin-top: 7px;
     }
-    .copy-icon:hover { background: rgba(255,255,255,0.1); color: var(--text); }
-    .copy-icon.copied { color: var(--green); }
+    .card-act {
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px; height: 30px;
+      font-size: 0.75rem; color: var(--muted); cursor: pointer;
+      text-decoration: none; transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap; letter-spacing: 0.02em;
+    }
+    .card-act:hover  { background: rgba(255,255,255,0.13); color: var(--text); border-color: rgba(255,255,255,0.25); }
+    .card-act.flash  { background: rgba(63,185,80,0.2); border-color: var(--green); color: var(--green); }
 
 
     /* ── Location pulse ── */
@@ -767,13 +773,18 @@ function renderCards() {
     return `<div class="card" data-fi="${fi}" onclick="selectFi(${fi}, true)">
       <div class="card-conf" style="color:${color}">${(d.conf*100).toFixed(1)}%</div>
       <div class="card-row">📅 <span>${d.date}</span></div>
-      <div class="card-row card-coord-row">
-        <span>📍 <span>${coord}</span></span>
-        <span class="copy-icon"
-          onclick="copyCoord(event,'${coord}')"
-          title="${t.btn_copy}">⧉</span>
-        <a class="copy-icon" href="${mapsUrl}" target="_blank" rel="noopener"
+      <div class="card-row card-coord-row">📍 <span>${coord}</span></div>
+      <div class="card-actions">
+        <button class="card-act" id="copy-act-${fi}"
+          onclick="copyCoord(event,'${coord}','copy-act-${fi}')" title="${t.btn_copy}">⧉</button>
+        <a class="card-act" href="${mapsUrl}" target="_blank" rel="noopener"
           onclick="event.stopPropagation()" title="${t.btn_maps}">🗺</a>
+        <button class="card-act"
+          onclick="downloadGpx(event,${d.lat},${d.lon},'${(d.conf*100).toFixed(1)}','${d.date}','${geo}')"
+          title="GPX">GPX↓</button>
+        <button class="card-act"
+          onclick="downloadKml(event,${d.lat},${d.lon},'${(d.conf*100).toFixed(1)}','${d.date}','${geo}')"
+          title="KML">KML↓</button>
       </div>
       <div class="card-district">🏛 ${geo}</div>
     </div>`;
@@ -791,17 +802,58 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
 }
 
-function copyCoord(event, coord) {
+function copyCoord(event, coord, btnId) {
   event.stopPropagation();
   const t = TEXTS[lang];
-  const doShow = () => showToast(`✅ ${t.btn_copied}  ${coord}`);
+  const doShow = () => {
+    showToast(`✅ ${t.btn_copied}  ${coord}`);
+    if (btnId) {
+      const btn = document.getElementById(btnId);
+      if (btn) { btn.classList.add("flash"); setTimeout(() => btn.classList.remove("flash"), 1800); }
+    }
+  };
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(coord).then(doShow).catch(() => {
-      fallbackCopy(coord); doShow();
-    });
-  } else {
-    fallbackCopy(coord); doShow();
-  }
+    navigator.clipboard.writeText(coord).then(doShow).catch(() => { fallbackCopy(coord); doShow(); });
+  } else { fallbackCopy(coord); doShow(); }
+}
+
+function downloadGpx(event, lat, lon, conf, date, district) {
+  event.stopPropagation();
+  const name = `Orbit Sentinel ${conf}%`;
+  const desc = `${conf}% | ${date} | ${district}`;
+  const xml  = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Orbit Sentinel" xmlns="http://www.topografix.com/GPX/1/1">
+  <wpt lat="${lat}" lon="${lon}">
+    <name>${name}</name>
+    <desc>${desc}</desc>
+  </wpt>
+</gpx>`;
+  triggerDownload(xml, `orbit-sentinel_${lat}_${lon}.gpx`, "application/gpx+xml");
+}
+
+function downloadKml(event, lat, lon, conf, date, district) {
+  event.stopPropagation();
+  const name = `Orbit Sentinel ${conf}%`;
+  const desc = `${conf}% | ${date} | ${district}`;
+  const xml  = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>${name}</name>
+      <description>${desc}</description>
+      <Point><coordinates>${lon},${lat},0</coordinates></Point>
+    </Placemark>
+  </Document>
+</kml>`;
+  triggerDownload(xml, `orbit-sentinel_${lat}_${lon}.kml`, "application/vnd.google-earth.kml+xml");
+}
+
+function triggerDownload(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 function fallbackCopy(text) {
