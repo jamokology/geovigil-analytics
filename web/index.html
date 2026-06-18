@@ -423,36 +423,23 @@ function toggleLang() { lang = lang === "es" ? "en" : "es"; applyLang(); }
 
 // ── Detection data ─────────────────────────────────────────────────────────
 const DETECTIONS = [
-  { lat: -3.7491,  lon: -73.2538, conf: 0.91, date: "2025-03-15" },
-  { lat: -5.1843,  lon: -75.0152, conf: 0.84, date: "2025-03-15" },
-  { lat: -4.5621,  lon: -74.1834, conf: 0.72, date: "2025-03-15" },
-  { lat: -6.3217,  lon: -76.5409, conf: 0.63, date: "2025-03-15" },
-  { lat: -7.1562,  lon: -75.8823, conf: 0.55, date: "2025-03-15" },
-  { lat: -3.2984,  lon: -72.6741, conf: 0.88, date: "2025-03-16" },
-  { lat: -8.8043,  lon: -74.9215, conf: 0.77, date: "2025-03-16" },
-  { lat: -13.5317, lon: -72.8818, conf: 0.69, date: "2025-03-17" },
-  { lat: -11.2451, lon: -75.3394, conf: 0.82, date: "2025-03-17" },
-  { lat: -14.0672, lon: -73.4129, conf: 0.58, date: "2025-03-17" },
-  { lat: -12.5934, lon: -70.0817, conf: 0.95, date: "2025-03-18" },
-  { lat: -11.8763, lon: -71.3452, conf: 0.87, date: "2025-03-18" },
-  { lat: -13.1289, lon: -69.6543, conf: 0.74, date: "2025-03-18" },
-  { lat: -0.1834,  lon: -75.8712, conf: 0.61, date: "2025-03-19" },
-  { lat: -1.5423,  lon: -77.1234, conf: 0.79, date: "2025-03-19" },
+  { lat: -3.7491,  lon: -73.2538, conf: 0.91, date: "2025-03-15", district: "Maynas, Loreto" },
+  { lat: -5.1843,  lon: -75.0152, conf: 0.84, date: "2025-03-15", district: "Requena, Loreto" },
+  { lat: -4.5621,  lon: -74.1834, conf: 0.72, date: "2025-03-15", district: "Loreto, Loreto" },
+  { lat: -6.3217,  lon: -76.5409, conf: 0.63, date: "2025-03-15", district: "Picota, San Martín" },
+  { lat: -7.1562,  lon: -75.8823, conf: 0.55, date: "2025-03-15", district: "Coronel Portillo, Ucayali" },
+  { lat: -3.2984,  lon: -72.6741, conf: 0.88, date: "2025-03-16", district: "Mariscal Ramón Castilla, Loreto" },
+  { lat: -8.8043,  lon: -74.9215, conf: 0.77, date: "2025-03-16", district: "Atalaya, Ucayali" },
+  { lat: -13.5317, lon: -72.8818, conf: 0.69, date: "2025-03-17", district: "La Convención, Cusco" },
+  { lat: -11.2451, lon: -75.3394, conf: 0.82, date: "2025-03-17", district: "Oxapampa, Pasco" },
+  { lat: -14.0672, lon: -73.4129, conf: 0.58, date: "2025-03-17", district: "Cotabambas, Apurímac" },
+  { lat: -12.5934, lon: -70.0817, conf: 0.95, date: "2025-03-18", district: "Tambopata, Madre de Dios" },
+  { lat: -11.8763, lon: -71.3452, conf: 0.87, date: "2025-03-18", district: "Manu, Madre de Dios" },
+  { lat: -13.1289, lon: -69.6543, conf: 0.74, date: "2025-03-18", district: "Tahuamanu, Madre de Dios" },
+  { lat: -0.1834,  lon: -75.8712, conf: 0.61, date: "2025-03-19", district: "Putumayo, Loreto" },
+  { lat: -1.5423,  lon: -77.1234, conf: 0.79, date: "2025-03-19", district: "Putumayo, Loreto" },
 ];
-// Pre-fill geoCache instantly from coordinates so the filter works on load.
-// Nominatim will overwrite with accurate names as requests complete.
-function estimateRegion(lat, lon) {
-  if (lat > -6  && lon < -75)                    return "Loreto Norte";
-  if (lat > -10 && lat <= -6  && lon < -74)      return "Loreto Sur / Ucayali";
-  if (lat > -10 && lat <= -6  && lon >= -74)      return "San Martín";
-  if (lat > -2  && lat <= 0)                      return "Loreto Norte";
-  if (lat <= -10 && lat > -13 && lon > -73)       return "Ucayali";
-  if (lat <= -10 && lat > -13 && lon <= -73)      return "Junín / Pasco";
-  if (lat <= -13 && lon > -71)                    return "Madre de Dios";
-  if (lat <= -13 && lon <= -71)                   return "Cusco / Apurímac";
-  return "Amazonia";
-}
-const geoCache = DETECTIONS.map(d => estimateRegion(d.lat, d.lon));
+const geoCache = DETECTIONS.map(d => d.district);
 
 function tierColor(conf) {
   if (conf >= 0.85) return "#E53935";
@@ -736,10 +723,8 @@ function renderCards() {
   strip.innerHTML = filteredIndices.map((detIdx, fi) => {
     const d     = DETECTIONS[detIdx];
     const color = tierColor(d.conf);
-    const geo   = geoCache[detIdx];
-    const distLine = geo
-      ? `<div class="card-district">🏛 ${geo}</div>`
-      : `<div class="card-district" id="geo-${fi}">🏛 ${t.loading}</div>`;
+    const geo      = geoCache[detIdx] || "—";
+    const distLine = `<div class="card-district">🏛 ${geo}</div>`;
     return `<div class="card" data-fi="${fi}" onclick="selectFi(${fi}, true)">
       <div class="card-conf" style="color:${color}">${(d.conf*100).toFixed(1)}%</div>
       <div class="card-row">📅 <span>${d.date}</span></div>
@@ -798,38 +783,6 @@ function toggleStrip() {
   }, { passive: true });
 })();
 
-// ── Reverse geocoding ──────────────────────────────────────────────────────
-const geoDone = new Array(DETECTIONS.length).fill(false); // tracks Nominatim completion
-async function fetchDistrict(detIdx) {
-  if (geoDone[detIdx]) return;
-  const d = DETECTIONS[detIdx];
-  try {
-    const res  = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${d.lat}&lon=${d.lon}&format=json&zoom=10`,
-      { headers: { "Accept-Language": "es" } }
-    );
-    const data = await res.json();
-    const addr = data.address || {};
-    geoCache[detIdx] = addr.county || addr.state_district || addr.state || geoCache[detIdx];
-  } catch { /* keep estimate */ }
-  geoDone[detIdx] = true;
-
-  // Update card if visible
-  const fi = filteredIndices.indexOf(detIdx);
-  if (fi >= 0) {
-    const el = document.getElementById(`geo-${fi}`);
-    if (el) el.textContent = `🏛 ${geoCache[detIdx]}`;
-  }
-  // Repopulate district checklist with updated names
-  populateDistrictChecklist();
-}
-
-async function prefetchGeo() {
-  for (let i = 0; i < DETECTIONS.length; i++) {
-    await fetchDistrict(i);
-    await new Promise(r => setTimeout(r, 1100));
-  }
-}
 
 // ── Slider sync ────────────────────────────────────────────────────────────
 function syncSlider(source) {
@@ -863,7 +816,6 @@ initDateRange();
 populateDistrictChecklist();
 renderAll();
 setTimeout(() => { scrollCardTo(0); updateZoomBtn(); }, 100);
-prefetchGeo();
 </script>
 </body>
 </html>
