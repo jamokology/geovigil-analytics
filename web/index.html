@@ -755,6 +755,7 @@ let markerMap       = new Map();  // detIdx → Leaflet marker
 let cardMap         = new Map();  // detIdx → DOM element
 let filteredIndices = [];
 let selectedFi      = 0;
+const fadingCards   = new Set(); // cards mid-fade-out, not yet removed from DOM
 
 // Build a single card DOM element (no innerHTML on strip)
 function buildCard(detIdx) {
@@ -837,6 +838,11 @@ function renderAll() {
     return;
   }
 
+  // Abort any in-progress fade-outs: remove those DOM nodes immediately so
+  // they don't end up at the wrong position in a subsequent re-sort
+  fadingCards.forEach(c => c.remove());
+  fadingCards.clear();
+
   const strip = document.getElementById('card-strip');
 
   // Collect cards/markers to remove (keep references before clearing from map)
@@ -898,8 +904,9 @@ function renderAll() {
   // Trigger card fade-out via CSS animation (keyframes start immediately,
   // no rAF timing dependency unlike transitions)
   cardsToFade.forEach(c => {
+    fadingCards.add(c);
     c.style.animation = 'cardFadeOut 0.22s ease forwards';
-    setTimeout(() => c.remove(), 240);
+    setTimeout(() => { c.remove(); fadingCards.delete(c); }, 240);
   });
 
   strip.onscroll = onStripScroll;
