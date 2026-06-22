@@ -122,7 +122,7 @@
     .card.selected { opacity: 1; }
     .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
     .card-conf { font-size: 1.15rem; font-weight: 700; }
-    .has-tip { position: relative; cursor: help; text-decoration: underline dotted; }
+    .has-tip { position: relative; cursor: help; text-decoration: underline dotted; display: inline-block; }
     .has-tip::after {
       content: attr(data-tip);
       position: absolute; bottom: calc(100% + 5px); left: 50%; transform: translateX(-50%);
@@ -132,7 +132,7 @@
       z-index: 999;
     }
     .has-tip:hover::after { opacity: 1; }
-    .card-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
+    .card-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; text-decoration: none !important; }
     .card-dot-active { background: #3fb950; box-shadow: 0 0 0 0 rgba(63,185,80,0.6); animation: pulse-green 2s infinite; }
     .card-dot-unconfirmed { background: #d29922; }
     @keyframes pulse-green {
@@ -458,6 +458,13 @@ const TEXTS = {
     roads_error:          "⚠ Error al cargar vías",
     roads_label:          "Vías",
     source_ensemble:      "Combinado",
+    tip_conf:             "Confianza del modelo de IA",
+    tip_confirmed_at:     "Última confirmación",
+    tip_detected_at:      "Primera detección",
+    tip_coord:            "Coordenadas geográficas",
+    tip_district:         "Distrito / Provincia",
+    tip_active:           "Redetectado en los últimos 3 meses",
+    tip_unconfirmed:      "Sin redetección en los últimos 3 meses",
   },
   en: {
     filter_header:        "Minimum confidence",
@@ -495,6 +502,13 @@ const TEXTS = {
     roads_error:          "⚠ Failed to load roads",
     roads_label:          "Roads",
     source_ensemble:      "Ensemble",
+    tip_conf:             "AI model confidence score",
+    tip_confirmed_at:     "Last confirmed",
+    tip_detected_at:      "First detected",
+    tip_coord:            "Geographic coordinates",
+    tip_district:         "District / Province",
+    tip_active:           "Re-detected within the last 3 months",
+    tip_unconfirmed:      "Not re-detected within the last 3 months",
   },
 };
 let lang = "es";
@@ -809,19 +823,20 @@ function buildCard(detIdx) {
   const el = document.createElement('div');
   el.className = 'card';
   el.dataset.detidx = detIdx;
-  const dotClass = d.status === 'active' ? 'card-dot-active' : 'card-dot-unconfirmed';
-  const isEnsemble = d.source && d.source.toLowerCase().startsWith('ensemble');
-  const sourceLabel = isEnsemble ? t.source_ensemble : (d.source || '—');
-  const sourceTitle = isEnsemble ? 'Sentinel-2 + Planet Basemaps' : '';
+  const dotClass  = d.status === 'active' ? 'card-dot-active' : 'card-dot-unconfirmed';
+  const dotTip    = d.status === 'active' ? t.tip_active : t.tip_unconfirmed;
+  const isEnsemble   = d.source && d.source.toLowerCase().startsWith('ensemble');
+  const sourceLabel  = isEnsemble ? t.source_ensemble : (d.source || '—');
+  const sourceTip    = isEnsemble ? 'Sentinel-2 + Planet Basemaps' : '';
   el.innerHTML = `
     <div class="card-header">
-      <div class="card-conf" style="color:${color}">${(d.conf*100).toFixed(1)}%</div>
-      <span class="card-dot ${dotClass}" title="${d.status}"></span>
+      <div class="card-conf has-tip" data-tip="${t.tip_conf}" style="color:${color}">${(d.conf*100).toFixed(1)}%</div>
+      <span class="card-dot ${dotClass} has-tip" data-tip="${dotTip}" style="text-decoration:none"></span>
     </div>
-    <div class="card-row">🔄 <span>${d.confirmed_at}</span></div>
-    <div class="card-row">📅 <span>${d.detected_at}</span></div>
-    <div class="card-row">🛰️ <span ${sourceTitle ? `class="has-tip" data-tip="${sourceTitle}"` : ''}>${sourceLabel}</span></div>
-    <div class="card-row card-coord-row">📍 <span>${coord}</span></div>
+    <div class="card-row">🔄 <span class="has-tip" data-tip="${t.tip_confirmed_at}">${d.confirmed_at}</span></div>
+    <div class="card-row">📅 <span class="has-tip" data-tip="${t.tip_detected_at}">${d.detected_at}</span></div>
+    <div class="card-row">🛰️ <span ${sourceTip ? `class="has-tip" data-tip="${sourceTip}"` : ''}>${sourceLabel}</span></div>
+    <div class="card-row card-coord-row">📍 <span class="has-tip" data-tip="${t.tip_coord}">${coord}</span></div>
     <div class="card-actions">
       <button class="card-act" id="copy-act-${detIdx}"
         onclick="copyCoord(event,'${coord}','copy-act-${detIdx}')" title="${t.btn_copy}">⧉</button>
@@ -834,7 +849,7 @@ function buildCard(detIdx) {
         onclick="downloadKml(event,${d.lat},${d.lon},'${(d.conf*100).toFixed(1)}','${d.date}','${geo}')"
         title="KML">KML</button>
     </div>
-    ${geo && geo !== '—' ? `<div class="card-district">🏛 ${geo}</div>` : ''}`;
+    ${geo && geo !== '—' ? `<div class="card-district has-tip" data-tip="${t.tip_district}">🏛 ${geo}</div>` : ''}`;
   el.addEventListener('click', e => {
     if (e.target.closest('.card-act, a')) return;
     const fi = filteredIndices.indexOf(detIdx);
