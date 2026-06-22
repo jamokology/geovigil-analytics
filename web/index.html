@@ -837,20 +837,18 @@ function renderAll() {
 
   const strip = document.getElementById('card-strip');
 
-  // Fade-out items no longer visible
+  // Collect cards/markers to remove (keep references before clearing from map)
+  const cardsToFade   = [];
+  const markersToFade = [];
   for (const detIdx of oldSet) {
     if (newSet.has(detIdx)) continue;
     const m = markerMap.get(detIdx);
-    if (m) { markerMap.delete(detIdx); markerFadeOut(m); }
+    if (m) { markerMap.delete(detIdx); markersToFade.push(m); }
     const c = cardMap.get(detIdx);
-    if (c) {
-      cardMap.delete(detIdx);
-      c.style.transition = 'opacity 0.2s ease, transform 0.2s ease, border-color 0.2s, box-shadow 0.2s';
-      c.style.opacity    = '0';
-      c.style.transform  = 'translateY(-6px)';
-      setTimeout(() => c.remove(), 220);
-    }
+    if (c) { cardMap.delete(detIdx); cardsToFade.push(c); }
   }
+  // Fade-out markers immediately (not layout-dependent)
+  markersToFade.forEach(markerFadeOut);
 
   filteredIndices = newIndices;
 
@@ -885,11 +883,24 @@ function renderAll() {
     cardMap.set(detIdx, card);
   }
 
-  // Re-sort cards in filteredIndices order
+  // Re-sort remaining (visible) cards in filteredIndices order
   for (const detIdx of filteredIndices) {
     const c = cardMap.get(detIdx);
     if (c) strip.appendChild(c);
   }
+
+  // Move fading-out cards to the END of the strip (off-screen right)
+  // so they don't appear to the left of visible cards during fade-out
+  cardsToFade.forEach(c => strip.appendChild(c));
+
+  // Trigger card fade-out now that they're at the safe end position
+  cardsToFade.forEach(c => {
+    c.style.transition = 'opacity 0.2s ease, transform 0.2s ease, border-color 0.2s, box-shadow 0.2s';
+    c.style.opacity    = '0';
+    c.style.transform  = 'translateY(-6px)';
+    setTimeout(() => c.remove(), 220);
+  });
+
   strip.onscroll = onStripScroll;
 
   updateMetrics();
@@ -898,13 +909,13 @@ function renderAll() {
   // applySelection sets correct opacity (1 or 0.6) on all cards BEFORE fade-in
   applySelection(selectedFi, false);
 
-  // Now trigger fade-in using the opacity applySelection just set
+  // Trigger fade-in using the opacity applySelection just set
   for (const detIdx of toAdd) {
     const card   = cardMap.get(detIdx);
     const marker = markerMap.get(detIdx);
     if (card) {
       const target = card.style.opacity || '0.6';
-      card.style.opacity = '0';  // ensure we start from 0
+      card.style.opacity = '0';
       requestAnimationFrame(() => requestAnimationFrame(() => {
         card.style.transition = 'opacity 0.25s ease, transform 0.25s ease, border-color 0.2s, box-shadow 0.2s';
         card.style.opacity    = target;
