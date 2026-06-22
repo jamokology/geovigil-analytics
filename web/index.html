@@ -118,7 +118,9 @@
       cursor: pointer;
       transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
       opacity: 0.6;
+      position: relative; z-index: 1;
     }
+    .card:hover, .card.selected { z-index: 10; }
     .card.selected { opacity: 1; }
     .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
     .card-conf { font-size: 1.15rem; font-weight: 700; }
@@ -318,16 +320,22 @@
       <button class="btn-header" onclick="toggleLang()" id="btn-lang-sb">🇬🇧 English</button>
       <hr>
 
-      <!-- Confidence filter -->
+      <!-- Confidence filter + legend -->
       <div class="slider-wrap">
-        <div class="section-label" data-i18n="filter_header">Filtros</div>
+        <div class="section-label" data-i18n="filter_conf_label">Confianza mínima</div>
         <div class="slider-val"><span id="sb-conf-val">50</span>%</div>
         <input type="range" id="sb-slider" min="0" max="100" value="50" step="5" oninput="syncSlider('sb')">
       </div>
+      <div class="legend" style="margin-top:4px">
+        <div class="legend-item"><span class="dot" style="background:var(--high)"></span><span data-i18n="legend_high">Alta ≥ 85%</span></div>
+        <div class="legend-item"><span class="dot" style="background:var(--mid)"></span><span data-i18n="legend_mid">Media 70–84%</span></div>
+        <div class="legend-item"><span class="dot" style="background:var(--low)"></span><span data-i18n="legend_low">Baja &lt; 70%</span></div>
+      </div>
+      <hr>
 
-      <!-- Date range filter -->
+      <!-- Last confirmed date range filter -->
       <div>
-        <div class="section-label" data-i18n="filter_date_label">Fecha de detección</div>
+        <div class="section-label" data-i18n="filter_date_confirmed">Última confirmación</div>
         <div class="dual-range-wrap" id="date-range-wrap">
           <div class="dual-range-track"></div>
           <div class="dual-range-fill" id="date-range-fill"></div>
@@ -337,6 +345,17 @@
         <div class="date-range-labels">
           <span id="date-label-min">—</span>
           <span id="date-label-max">—</span>
+        </div>
+      </div>
+
+      <!-- Source filter -->
+      <div>
+        <div class="section-label" data-i18n="filter_source_label">Fuente de imagen</div>
+        <div class="check-list" id="source-checklist">
+          <div class="check-item check-all">
+            <input type="checkbox" id="src-all" checked onchange="onSrcAllToggle(this)">
+            <label for="src-all" data-i18n="filter_all">Todas</label>
+          </div>
         </div>
       </div>
 
@@ -350,22 +369,20 @@
           </div>
         </div>
       </div>
+      <hr>
 
-      <hr>
-      <div>
-        <div class="section-label" data-i18n="legend_title">Nivel de confianza</div>
-        <div class="legend" style="margin-top:8px">
-          <div class="legend-item"><span class="dot" style="background:var(--high)"></span><span data-i18n="legend_high">Alta ≥ 85%</span></div>
-          <div class="legend-item"><span class="dot" style="background:var(--mid)"></span><span data-i18n="legend_mid">Media 70–84%</span></div>
-          <div class="legend-item"><span class="dot" style="background:var(--low)"></span><span data-i18n="legend_low">Baja &lt; 70%</span></div>
-        </div>
-      </div>
-      <hr>
+      <!-- Metrics + map style -->
       <div class="metric-card">
         <div class="metric-label" data-i18n="metric_label">Detecciones visibles</div>
         <div class="metric-value" id="sb-metric">— / —</div>
       </div>
+      <div>
+        <div class="section-label" data-i18n="map_style">Estilo de mapa</div>
+        <button class="btn-header" onclick="toggleMapTile()" id="btn-tile-sb" style="margin-top:4px;width:100%">🗺 Street</button>
+      </div>
       <hr>
+
+      <!-- Status -->
       <div class="status">
         <div class="section-label" data-i18n="data_status">Estado</div>
         <div class="status-dot">● <span data-i18n="status_demo">Demo — datos simulados</span></div>
@@ -469,6 +486,10 @@ const TEXTS = {
     tip_maps:             "Abrir en Google Maps",
     tip_gpx:              "Descargar archivo GPX",
     tip_kml:              "Descargar archivo KML",
+    filter_source_label:  "Fuente de imagen",
+    filter_conf_label:    "Confianza mínima",
+    filter_date_confirmed:"Última confirmación",
+    map_style:            "Estilo de mapa",
   },
   en: {
     filter_header:        "Minimum confidence",
@@ -517,6 +538,10 @@ const TEXTS = {
     tip_maps:             "Open in Google Maps",
     tip_gpx:              "Download GPX file",
     tip_kml:              "Download KML file",
+    filter_source_label:  "Image source",
+    filter_conf_label:    "Minimum confidence",
+    filter_date_confirmed:"Last confirmed",
+    map_style:            "Map style",
   },
 };
 let lang = "es";
@@ -561,13 +586,18 @@ TILES.satellite.addTo(map);
 let currentTile = "satellite";
 
 function toggleMapTile() {
-  const btn = document.getElementById("btn-tile");
+  const btn   = document.getElementById("btn-tile");
+  const btnSb = document.getElementById("btn-tile-sb");
   if (currentTile === "satellite") {
     map.removeLayer(TILES.satellite); TILES.street.addTo(map);
-    currentTile = "street"; btn.textContent = "🛰 Satellite";
+    currentTile = "street";
+    if (btn)   btn.textContent   = "🛰 Satellite";
+    if (btnSb) btnSb.textContent = "🛰 Satellite";
   } else {
     map.removeLayer(TILES.street); TILES.satellite.addTo(map);
-    currentTile = "satellite"; btn.textContent = "🗺 Street";
+    currentTile = "satellite";
+    if (btn)   btn.textContent   = "🗺 Street";
+    if (btnSb) btnSb.textContent = "🗺 Street";
   }
 }
 
@@ -791,6 +821,51 @@ function onDistCheck() {
   renderAll();
 }
 
+// ── Source multi-select ────────────────────────────────────────────────────
+let selectedSources = new Set(); // empty = all
+
+function populateSourceChecklist() {
+  const list    = document.getElementById("source-checklist");
+  if (!list) return;
+  const t       = TEXTS[lang];
+  const sources = [...new Set(DETECTIONS.map(d => d.source).filter(Boolean))].sort();
+
+  list.querySelectorAll(".src-item").forEach(el => el.remove());
+
+  sources.forEach(s => {
+    const item = document.createElement("div");
+    item.className = "check-item src-item";
+    const label = s.toLowerCase().startsWith("ensemble") ? t.source_ensemble : s;
+    const checked = selectedSources.size === 0 || selectedSources.has(s);
+    item.innerHTML = `<input type="checkbox" id="src-${s.replace(/\W/g,'_')}" ${checked ? "checked" : ""} onchange="onSrcCheck()" data-source="${s}">
+                      <label for="src-${s.replace(/\W/g,'_')}">${label}</label>`;
+    list.appendChild(item);
+  });
+
+  const allCb = document.getElementById("src-all");
+  if (allCb) allCb.checked = selectedSources.size === 0;
+}
+
+function onSrcAllToggle(el) {
+  selectedSources.clear();
+  document.querySelectorAll(".src-item input").forEach(cb => { cb.checked = el.checked; });
+  if (!el.checked) el.checked = true;
+  renderAll();
+}
+
+function onSrcCheck() {
+  selectedSources = new Set(
+    [...document.querySelectorAll(".src-item input")]
+      .filter(cb => cb.checked)
+      .map(cb => cb.dataset.source)
+  );
+  const checks = document.querySelectorAll(".src-item input").length;
+  if (selectedSources.size === checks) selectedSources.clear();
+  const allCb = document.getElementById("src-all");
+  if (allCb) allCb.checked = selectedSources.size === 0;
+  renderAll();
+}
+
 // ── Filters ────────────────────────────────────────────────────────────────
 function getFilteredIndices() {
   const minConf  = parseInt(document.getElementById("main-slider").value) / 100;
@@ -804,6 +879,7 @@ function getFilteredIndices() {
       if (from && d.date < from) return false;
       if (to   && d.date > to)   return false;
       if (selectedDistricts.size > 0 && !selectedDistricts.has(geoCache[i])) return false;
+      if (selectedSources.size > 0 && !selectedSources.has(d.source)) return false;
       return true;
     })
     .sort((a, b) => DETECTIONS[b].conf - DETECTIONS[a].conf);
@@ -811,6 +887,7 @@ function getFilteredIndices() {
 
 function refreshSelectLabels() {
   populateDistrictChecklist();
+  populateSourceChecklist();
 }
 
 // ── Markers & cards — keyed maps for per-item diffing ─────────────────────
@@ -1296,6 +1373,7 @@ fetch('./data/detections.json')
     ALL_DATES = [...new Set(DETECTIONS.map(d => d.confirmed_at))].sort();
     initDateRange();
     populateDistrictChecklist();
+    populateSourceChecklist();
     renderAll();
     setTimeout(() => { scrollCardTo(0); updateZoomBtn(); syncZoomControls(); }, 100);
   })
