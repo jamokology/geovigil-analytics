@@ -1240,7 +1240,7 @@ document.getElementById("sb-conf-val").textContent   = "50";
 document.getElementById("main-conf-val").textContent = "50%";
 updateConfSliderFill(50);
 
-fetch('../data/detections.json')
+fetch('./data/detections.json')
   .then(r => r.json())
   .then(json => {
     DETECTIONS = (json.detections || [])
