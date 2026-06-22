@@ -120,7 +120,16 @@
       opacity: 0.6;
     }
     .card.selected { opacity: 1; }
-    .card-conf { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .card-conf { font-size: 1.15rem; font-weight: 700; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot-active { background: #3fb950; box-shadow: 0 0 0 0 rgba(63,185,80,0.6); animation: pulse-green 2s infinite; }
+    .status-dot-unconfirmed { background: #d29922; }
+    @keyframes pulse-green {
+      0%   { box-shadow: 0 0 0 0 rgba(63,185,80,0.6); }
+      70%  { box-shadow: 0 0 0 6px rgba(63,185,80,0); }
+      100% { box-shadow: 0 0 0 0 rgba(63,185,80,0); }
+    }
     .card-row { font-size: 0.78rem; color: var(--muted); line-height: 1.7; }
     .card-row span { color: var(--text); }
     .card-district { font-size: 0.73rem; color: var(--muted); margin-top: 4px; font-style: italic; min-height: 1.1em; }
@@ -494,25 +503,9 @@ function applyLang() {
 }
 function toggleLang() { lang = lang === "es" ? "en" : "es"; applyLang(); }
 
-// ── Detection data ─────────────────────────────────────────────────────────
-const DETECTIONS = [
-  { lat: -3.7491,  lon: -73.2538, conf: 0.91, date: "2025-03-15", district: "Maynas, Loreto" },
-  { lat: -5.1843,  lon: -75.0152, conf: 0.84, date: "2025-03-15", district: "Requena, Loreto" },
-  { lat: -4.5621,  lon: -74.1834, conf: 0.72, date: "2025-03-15", district: "Loreto, Loreto" },
-  { lat: -6.3217,  lon: -76.5409, conf: 0.63, date: "2025-03-15", district: "Picota, San Martín" },
-  { lat: -7.1562,  lon: -75.8823, conf: 0.55, date: "2025-03-15", district: "Coronel Portillo, Ucayali" },
-  { lat: -3.2984,  lon: -72.6741, conf: 0.88, date: "2025-03-16", district: "Mariscal Ramón Castilla, Loreto" },
-  { lat: -8.8043,  lon: -74.9215, conf: 0.77, date: "2025-03-16", district: "Atalaya, Ucayali" },
-  { lat: -13.5317, lon: -72.8818, conf: 0.69, date: "2025-03-17", district: "La Convención, Cusco" },
-  { lat: -11.2451, lon: -75.3394, conf: 0.82, date: "2025-03-17", district: "Oxapampa, Pasco" },
-  { lat: -14.0672, lon: -73.4129, conf: 0.58, date: "2025-03-17", district: "Cotabambas, Apurímac" },
-  { lat: -12.5934, lon: -70.0817, conf: 0.95, date: "2025-03-18", district: "Tambopata, Madre de Dios" },
-  { lat: -11.8763, lon: -71.3452, conf: 0.87, date: "2025-03-18", district: "Manu, Madre de Dios" },
-  { lat: -13.1289, lon: -69.6543, conf: 0.74, date: "2025-03-18", district: "Tahuamanu, Madre de Dios" },
-  { lat: -0.1834,  lon: -75.8712, conf: 0.61, date: "2025-03-19", district: "Putumayo, Loreto" },
-  { lat: -1.5423,  lon: -77.1234, conf: 0.79, date: "2025-03-19", district: "Putumayo, Loreto" },
-];
-const geoCache = DETECTIONS.map(d => d.district);
+// ── Detection data (loaded from detections.json) ───────────────────────────
+let DETECTIONS = [];
+let geoCache   = [];
 
 function tierColor(conf) {
   if (conf >= 0.85) return "#E53935";
@@ -669,7 +662,7 @@ if (navigator.geolocation) {
 }
 
 // ── Date range filter ──────────────────────────────────────────────────────
-const ALL_DATES = [...new Set(DETECTIONS.map(d => d.date))].sort();
+let ALL_DATES = [];
 
 function initDateRange() {
   const minEl = document.getElementById("date-range-min");
@@ -804,9 +797,15 @@ function buildCard(detIdx) {
   const el = document.createElement('div');
   el.className = 'card';
   el.dataset.detidx = detIdx;
+  const dotClass = d.status === 'active' ? 'status-dot-active' : 'status-dot-unconfirmed';
   el.innerHTML = `
-    <div class="card-conf" style="color:${color}">${(d.conf*100).toFixed(1)}%</div>
-    <div class="card-row">📅 <span>${d.date}</span></div>
+    <div class="card-header">
+      <div class="card-conf" style="color:${color}">${(d.conf*100).toFixed(1)}%</div>
+      <span class="status-dot ${dotClass}" title="${d.status}"></span>
+    </div>
+    <div class="card-row">🔄 <span>${d.confirmed_at}</span></div>
+    <div class="card-row">📅 <span>${d.detected_at}</span></div>
+    <div class="card-row">🛰️ <span>${d.source}</span></div>
     <div class="card-row card-coord-row">📍 <span>${coord}</span></div>
     <div class="card-actions">
       <button class="card-act" id="copy-act-${detIdx}"
@@ -1240,10 +1239,33 @@ function toggleRoads() {
 document.getElementById("sb-conf-val").textContent   = "50";
 document.getElementById("main-conf-val").textContent = "50%";
 updateConfSliderFill(50);
-initDateRange();
-populateDistrictChecklist();
-renderAll();
-setTimeout(() => { scrollCardTo(0); updateZoomBtn(); syncZoomControls(); }, 100);
+
+fetch('../data/detections.json')
+  .then(r => r.json())
+  .then(json => {
+    DETECTIONS = (json.detections || [])
+      .filter(d => d.status !== 'inactive')
+      .map(d => ({
+        lat:          d.lat,
+        lon:          d.lon,
+        conf:         d.confidence,
+        date:         (d.confirmed_at || d.detected_at || '').slice(0, 10),
+        detected_at:  (d.detected_at  || '').slice(0, 10),
+        confirmed_at: (d.confirmed_at || d.detected_at || '').slice(0, 10),
+        status:       d.status || 'active',
+        source:       d.source || '—',
+        district:     d.district || '—',
+      }));
+    geoCache  = DETECTIONS.map(d => d.district);
+    ALL_DATES = [...new Set(DETECTIONS.map(d => d.confirmed_at))].sort();
+    initDateRange();
+    populateDistrictChecklist();
+    renderAll();
+    setTimeout(() => { scrollCardTo(0); updateZoomBtn(); syncZoomControls(); }, 100);
+  })
+  .catch(err => {
+    console.error('Failed to load detections.json:', err);
+  });
 </script>
 </body>
 </html>

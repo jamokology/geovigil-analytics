@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: geovigil-analytics
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run py/app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.12.0
