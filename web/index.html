@@ -273,6 +273,7 @@
 
     /* ── Location pulse ── */
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:.9} 50%{transform:scale(1.6);opacity:.3} }
+    @keyframes cardFadeOut { to { opacity: 0; transform: translateY(-6px); } }
     .loc-pulse { width:14px;height:14px;border-radius:50%;background:#58a6ff;box-shadow:0 0 0 3px rgba(88,166,255,.4);animation:pulse 2s infinite; }
 
     /* ── River tooltip ── */
@@ -893,15 +894,11 @@ function renderAll() {
   // so they don't appear to the left of visible cards during fade-out
   cardsToFade.forEach(c => strip.appendChild(c));
 
-  // Trigger card fade-out after one rAF so the browser commits the initial
-  // state (current opacity/position) before applying the transition target
+  // Trigger card fade-out via CSS animation (keyframes start immediately,
+  // no rAF timing dependency unlike transitions)
   cardsToFade.forEach(c => {
-    requestAnimationFrame(() => {
-      c.style.transition = 'opacity 0.2s ease, transform 0.2s ease, border-color 0.2s, box-shadow 0.2s';
-      c.style.opacity    = '0';
-      c.style.transform  = 'translateY(-6px)';
-      setTimeout(() => c.remove(), 240);
-    });
+    c.style.animation = 'cardFadeOut 0.22s ease forwards';
+    setTimeout(() => c.remove(), 240);
   });
 
   strip.onscroll = onStripScroll;
