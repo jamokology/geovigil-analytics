@@ -1,0 +1,28 @@
+[project]
+name = "geovigil-pipeline"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+dependencies = [
+    # Image / geo processing
+    "rasterio>=1.3",
+    "numpy>=1.26",
+    # YOLO inference — install after receiving model weights
+    # "ultralytics>=8.2",
+    # WBF ensemble
+    # "ensemble-boxes>=1.0",
+    # Sentinel-2 fetching (Copernicus Data Space)
+    # "sentinelhub>=3.10",
+    # Planet SDK
+    # "planet>=2.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+]

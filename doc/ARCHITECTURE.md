@@ -76,7 +76,7 @@ Two separate YOLO models are trained and maintained:
 
 | Model | Training imagery | Status |
 |---|---|---|
-| `model_nicfi.pt` | Planet NICFI tiles | To be trained / inherited from predecessor |
+| `model_planet.pt` | Planet NICFI tiles | To be trained / inherited from predecessor |
 | `model_sentinel.pt` | Sentinel-2 tiles | To be trained / inherited from predecessor |
 
 Each model is trained on imagery from its respective source to preserve domain consistency. Cross-source inference (e.g., running a NICFI-trained model on Sentinel imagery) degrades accuracy and is avoided.
@@ -110,14 +110,16 @@ boxes, scores, labels = weighted_boxes_fusion(
 ```
 py/
   pipeline/
-    fetch_images.py      # Satellite image retrieval (Sentinel-2 + NICFI)
-    run_inference.py     # YOLO inference per source
+    fetch_sentinel.py    # Sentinel-2 imagery retrieval (Copernicus Data Space)
+    fetch_planet.py      # Planet NICFI monthly mosaic retrieval
+    run_inference.py     # YOLO inference (separate model per source)
     ensemble.py          # WBF ensemble logic
-    export_json.py       # Write detections.json
+    update_json.py       # Update detections.json (dedup + status management)
     git_push.py          # Commit and push to GitHub
   daily_run.py           # Entry point called by Task Scheduler
-data/
-  detections.json        # Output consumed by the web dashboard
+web/
+  data/
+    detections.json      # Output consumed by the web dashboard
 ```
 
 ### Execution schedule
@@ -166,7 +168,7 @@ A **repository-scoped Deploy Key** (SSH) or **Fine-grained Personal Access Token
 | `detected_at` | string | Timestamp of first detection |
 | `confirmed_at` | string | Timestamp of most recent detection (updated each pipeline run) |
 | `status` | string | See lifecycle table below |
-| `source` | string | `"sentinel2"`, `"nicfi"`, or `"ensemble"` |
+| `source` | string | `"Sentinel-2"`, `"Planet NICFI"`, or `"Ensemble (Sentinel-2 + Planet)"` |
 
 ---
 
@@ -226,11 +228,11 @@ The same indicators appear in the sidebar legend alongside the existing confiden
 
 ## Web Dashboard (Cloudflare Pages)
 
-- **Framework:** Streamlit (`py/app.py`)
-- **Hosting:** Cloudflare Pages (auto-deploy on push to `main`)
-- **Data loading:** `data/detections.json` is read at app startup with a 1-hour cache (`@st.cache_data(ttl=3600)`)
-- **Languages:** Spanish (default) / English toggle
-- **Features:** Confidence filter slider, interactive Folium map, detection table
+- **Framework:** Vanilla JS + Leaflet (`web/index.html`)
+- **Hosting:** Cloudflare Pages (auto-deploy on push to `main`, publish directory: `web/`)
+- **Data loading:** `web/data/detections.json` fetched at page load
+- **Languages:** Japanese / English toggle
+- **Features:** Confidence filter, source filter, interactive Leaflet map, detection popup cards with status indicator
 
 ### Deploy flow
 
@@ -262,9 +264,9 @@ No manual deploy step is required.
 |---|---|
 | Object detection | YOLOv? (Ultralytics) |
 | Ensemble | `ensemble-boxes` (WBF) |
-| Satellite data | `sentinelsat` / `eodag`, Google Earth Engine Python API |
+| Satellite data | `sentinelhub` (Copernicus Data Space), Planet SDK v2 |
 | Backend pipeline | Python 3.12 |
-| Dashboard | Streamlit + Folium |
+| Dashboard | Vanilla JS + Leaflet |
 | Hosting | Cloudflare Pages |
 | Source control | GitHub |
 | Scheduler | Windows Task Scheduler |
