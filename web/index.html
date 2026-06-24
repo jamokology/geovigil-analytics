@@ -292,6 +292,54 @@
     .card-act.flash  { background: rgba(63,185,80,0.2); border-color: var(--green); color: var(--green); }
 
 
+    /* ── Splash overlay ── */
+    .splash {
+      position: fixed; inset: 0; z-index: 10000;
+      background: #050810;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      transition: opacity 0.7s ease;
+    }
+    .splash.fade-out { opacity: 0; pointer-events: none; }
+    .splash-img {
+      width: min(90vw, 860px);
+      height: auto;
+      animation: splashIn 0.6s ease both;
+    }
+    @keyframes splashIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .splash-bar-wrap {
+      margin-top: 36px;
+      width: min(90vw, 860px);
+      height: 2px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    .splash-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4da6e8, #58a6ff);
+      border-radius: 1px;
+      transition: width 2.4s linear;
+    }
+    .splash-skip {
+      margin-top: 20px;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.2s;
+      user-select: none;
+    }
+    .splash-skip:hover { color: rgba(255,255,255,0.6); }
+
+    /* ── Header logo image ── */
+    .header-logo { height: 40px; width: auto; display: block; margin: 0 auto; }
+
     /* ── Location pulse ── */
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:.9} 50%{transform:scale(1.6);opacity:.3} }
     @keyframes cardFadeOut { to { opacity: 0; transform: translateY(-6px); } }
@@ -310,6 +358,12 @@
   </style>
 </head>
 <body>
+<div class="splash" id="splash">
+  <img src="geovigil_analytics_logo_black_large.png" alt="GeoVigil Analytics" class="splash-img" draggable="false">
+  <div class="splash-bar-wrap"><div class="splash-bar" id="splash-bar"></div></div>
+  <div class="splash-skip" onclick="dismissSplash()">TAP TO ENTER</div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div class="layout">
 
@@ -398,8 +452,7 @@
       <div class="header-row">
         <button class="btn-icon" onclick="toggleSidebar()" id="btn-menu">☰</button>
         <div class="header-center">
-          <div class="title">🛰️ GeoVigil Analytics</div>
-          <div class="subtitle" data-i18n="subtitle">Detección de pistas clandestinas · Perú</div>
+          <img src="geovigil_analytics_logo_transparent_forblack.png" alt="GeoVigil Analytics" class="header-logo">
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
           <button class="btn-header" onclick="toggleLang()" id="btn-lang-top">🇬🇧 English</button>
@@ -437,6 +490,34 @@
 </div>
 
 <script>
+// ── Splash ────────────────────────────────────────────────────────────────
+(function () {
+  const DURATION = 2500; // ms before auto-dismiss
+  let dismissed  = false;
+
+  function dismissSplash() {
+    if (dismissed) return;
+    dismissed = true;
+    const el = document.getElementById('splash');
+    el.classList.add('fade-out');
+    setTimeout(() => el.remove(), 750);
+  }
+  window.dismissSplash = dismissSplash;
+
+  // Start progress bar after paint
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const bar = document.getElementById('splash-bar');
+    if (bar) bar.style.width = '100%';
+  }));
+
+  // Auto-dismiss
+  setTimeout(dismissSplash, DURATION);
+
+  // Also dismiss on any keydown / click on the splash
+  document.getElementById('splash').addEventListener('click', dismissSplash);
+  document.addEventListener('keydown', dismissSplash, { once: true });
+})();
+
 // ── i18n ──────────────────────────────────────────────────────────────────
 const TEXTS = {
   es: {
