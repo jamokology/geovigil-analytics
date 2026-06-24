@@ -65,6 +65,22 @@
     }
     .sidebar-actions .btn-header { flex: 1; font-size: 0.8rem; gap: 5px; }
 
+    /* ── Sidebar close button (mobile) ── */
+    .sidebar-close {
+      display: none; position: absolute; top: 10px; right: 10px;
+      background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 6px; padding: 4px 10px;
+      font-size: 0.9rem; cursor: pointer; z-index: 10;
+    }
+    .sidebar-close:hover { color: var(--text); background: rgba(255,255,255,0.12); }
+    @media (max-width: 640px) {
+      .sidebar-close { display: block; }
+    }
+
+    /* ── Menu control: icon-only, fixed small size ── */
+    .map-ctrl-menu { width: auto !important; }
+    .map-ctrl-menu .map-ctrl-btn { padding: 8px 11px; min-width: 0; }
+
     /* ── Settings toggle group ── */
     .toggle-group { display: flex; gap: 6px; }
     .toggle-group .btn-header { flex: 1; text-align: center; opacity: 0.45; transition: opacity 0.2s, background 0.2s; }
@@ -586,7 +602,6 @@
   <!-- Mobile: square logo + title -->
   <div class="splash-mobile-inner">
     <img src="geovigil_analytics_logo_transparent_forblack.png" alt="GeoVigil Analytics" class="splash-mobile-logo" draggable="false">
-    <div class="splash-mobile-title">GeoVigil Analytics</div>
     <div class="splash-mobile-sub" id="splash-sub">Detección de pistas clandestinas · Perú</div>
   </div>
   <div class="splash-divider"></div>
@@ -598,6 +613,7 @@
 
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
+    <button class="sidebar-close" onclick="toggleSidebar()" aria-label="Close menu">✕</button>
     <div class="sidebar-inner">
       <img src="geovigil_analytics_logo_transparent_forblack.png" alt="GeoVigil Analytics" class="sidebar-logo">
       <hr>
@@ -706,8 +722,8 @@
         <span data-i18n="settings_lang">Idioma</span>
       </div>
       <div class="toggle-group">
-        <button class="btn-header active" id="btn-lang-es" onclick="setLang('es')">Español</button>
-        <button class="btn-header"        id="btn-lang-en" onclick="setLang('en')">English</button>
+        <button class="btn-header active" id="btn-lang-es" onclick="setLang('es')">🇪🇸 Español</button>
+        <button class="btn-header"        id="btn-lang-en" onclick="setLang('en')">🇬🇧 English</button>
       </div>
     </div>
     <div class="modal-row">
@@ -1052,22 +1068,23 @@ const ROAD_SVG = `<svg width="20" height="14" viewBox="0 0 20 14" fill="none" st
 const MenuControl = L.Control.extend({
   options: { position: 'topleft' },
   onAdd() {
-    const wrap = L.DomUtil.create('div', 'leaflet-bar map-ctrl');
+    const wrap = L.DomUtil.create('div', 'leaflet-bar map-ctrl map-ctrl-menu');
     const btn  = L.DomUtil.create('button', 'map-ctrl-btn', wrap);
     btn.id = 'btn-menu';
     btn.innerHTML = '<span class="ctrl-icon" style="font-size:1.1rem">☰</span>';
-    btn.style.padding = '8px 12px';
     L.DomEvent.disableClickPropagation(wrap);
     L.DomEvent.on(btn, 'click', () => toggleSidebar());
     return wrap;
   },
 });
 new MenuControl().addTo(map);
+// Zoom +/- below ☰ at topleft
+L.control.zoom({ position: 'topleft' }).addTo(map);
 
 const BORDER_SVG = `<svg width="20" height="14" viewBox="0 0 20 14" fill="none" style="flex-shrink:0">
   <rect x="1.5" y="1.5" width="17" height="11" rx="1" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 2" fill="none"/>
 </svg>`;
-const GEAR_SVG = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+const _GEAR_SVG_UNUSED = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
   <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
   <path d="M8 1v2M8 13v2M1 8h2M13 8h2M2.93 2.93l1.41 1.41M11.66 11.66l1.41 1.41M2.93 13.07l1.41-1.41M11.66 4.34l1.41-1.41" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
 </svg>`;
@@ -1134,25 +1151,11 @@ const BorderControl = L.Control.extend({
   },
 });
 
-const SettingsControl = L.Control.extend({
-  options: { position: 'topright' },
-  onAdd() {
-    const wrap = L.DomUtil.create('div', 'leaflet-bar map-ctrl map-ctrl-settings');
-    const btn  = L.DomUtil.create('button', 'map-ctrl-btn', wrap);
-    btn.id = 'btn-settings-map';
-    btn.title = 'Settings / Configuración';
-    btn.innerHTML = GEAR_SVG;
-    L.DomEvent.disableClickPropagation(wrap);
-    L.DomEvent.on(btn, 'click', () => toggleSettings());
-    return wrap;
-  },
-});
 
-const zoomCtrl     = new ZoomControl().addTo(map);
-const riverCtrl    = new RiverControl().addTo(map);
-const roadCtrl     = new RoadControl().addTo(map);
-const borderCtrl   = new BorderControl().addTo(map);
-const settingsCtrl = new SettingsControl().addTo(map);
+const zoomCtrl   = new ZoomControl().addTo(map);
+const riverCtrl  = new RiverControl().addTo(map);
+const roadCtrl   = new RoadControl().addTo(map);
+const borderCtrl = new BorderControl().addTo(map);
 
 function updateZoomBtn() {
   const t = TEXTS[lang];
@@ -1166,9 +1169,9 @@ function updateZoomBtn() {
   if (roadLbl) roadLbl.textContent = t.roads_label;
   const borderLbl  = document.getElementById('border-btn-label');
   if (borderLbl) borderLbl.textContent = t.borders_label;
-  // Equalize widths of togglable map-ctrl containers (exclude icon-only settings)
+  // Equalize widths of topright togglable map-ctrl containers only
   requestAnimationFrame(() => {
-    const ctrls = document.querySelectorAll('.map-ctrl:not(.map-ctrl-settings)');
+    const ctrls = document.querySelectorAll('.map-ctrl:not(.map-ctrl-menu)');
     ctrls.forEach(el => el.style.width = '');
     const max = Math.max(...[...ctrls].map(el => el.getBoundingClientRect().width));
     ctrls.forEach(el => el.style.width = max + 'px');
