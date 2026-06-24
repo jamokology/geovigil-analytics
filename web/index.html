@@ -58,7 +58,7 @@
     .layout { position: relative; }
 
     /* ── Main ── */
-    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; overscroll-behavior: none; }
 
     .sidebar-logo { width: 100%; max-width: 200px; height: auto; display: block; margin: 0 auto 4px; }
 
@@ -194,7 +194,7 @@
     }
     .splash-mobile-sub {
       font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;
-      color: var(--muted); margin-top: 8px; margin-bottom: 8px; text-align: center;
+      color: var(--muted); margin-top: 8px; margin-bottom: 4px; text-align: center;
       animation: fadeUp 2s ease both;
     }
 
@@ -236,7 +236,7 @@
     }
 
     /* ── Map area (relative for card overlay) ── */
-    .map-area { flex: 1; position: relative; min-height: 0; }
+    .map-area { flex: 1; position: relative; min-height: 0; overscroll-behavior: none; }
     #map { position: absolute; inset: 0; }
 
     /* Map vignette — cinematic dark edges, matches splash */
@@ -291,6 +291,9 @@
       overflow-x: auto; scroll-snap-type: x mandatory;
       scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      /* Prevent vertical scroll from propagating to parent (iOS rubber-band / map shift) */
+      touch-action: pan-x;
+      overscroll-behavior-x: contain;
     }
     .card-strip::-webkit-scrollbar { display: none; }
     .card {
