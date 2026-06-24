@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>GeoVigil Analytics</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+  <link rel="icon" type="image/png" href="geovigil_analytics_logo_black.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -289,33 +289,62 @@
     /* ── Splash overlay ── */
     .splash {
       position: fixed; inset: 0; z-index: 10000;
-      background: #050810;
+      background: #020509;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      transition: opacity 0.7s ease;
+      overflow: hidden;
+      transition: opacity 1s ease;
     }
     .splash.fade-out { opacity: 0; pointer-events: none; }
+
+    /* Wrapper clips the Ken Burns zoom without affecting layout */
+    .splash-img-wrap {
+      width: 100%;
+      overflow: hidden;
+      line-height: 0;
+    }
     .splash-img {
       width: 100%;
       height: auto;
-      animation: splashIn 0.6s ease both;
+      display: block;
+      animation: splashReveal 1.6s cubic-bezier(0.22,0.61,0.36,1) both,
+                 kenBurns 20s ease-in-out infinite alternate;
     }
-    @keyframes splashIn {
-      from { opacity: 0; transform: scale(0.97); }
-      to   { opacity: 1; transform: scale(1); }
+    @keyframes splashReveal {
+      from { opacity: 0; filter: brightness(0.3); }
+      to   { opacity: 1; filter: brightness(1); }
+    }
+    @keyframes kenBurns {
+      from { transform: scale(1.0); }
+      to   { transform: scale(1.04); }
+    }
+
+    .splash-divider {
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, #3a3a3a 15%, #3a3a3a 85%, transparent);
+      flex-shrink: 0;
+      animation: fadeUp 2s ease both;
     }
     .splash-skip {
-      margin-top: 24px;
-      font-size: 0.72rem;
-      color: rgba(255,255,255,0.3);
-      letter-spacing: 0.12em;
+      margin-top: 22px;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.22);
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       cursor: pointer;
-      transition: color 0.2s;
       user-select: none;
-      animation: splashIn 1.2s ease both;
+      animation: fadeUp 2.4s ease both, skipPulse 3s 3s ease-in-out infinite;
+      transition: color 0.3s, letter-spacing 0.3s;
     }
-    .splash-skip:hover { color: rgba(255,255,255,0.65); }
+    .splash-skip:hover { color: rgba(255,255,255,0.6); letter-spacing: 0.22em; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes skipPulse {
+      0%, 100% { color: rgba(255,255,255,0.22); }
+      50%       { color: rgba(255,255,255,0.45); }
+    }
 
     /* ── Location pulse ── */
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:.9} 50%{transform:scale(1.6);opacity:.3} }
@@ -336,8 +365,10 @@
 </head>
 <body>
 <div class="splash" id="splash">
-  <img src="geovigil_analytics_logo_black_large.png" alt="GeoVigil Analytics" class="splash-img" draggable="false">
-  <div style="width:100%;height:1px;background:#3a3a3a;flex-shrink:0"></div>
+  <div class="splash-img-wrap">
+    <img src="geovigil_analytics_logo_black_large.png" alt="GeoVigil Analytics" class="splash-img" draggable="false">
+  </div>
+  <div class="splash-divider"></div>
   <div class="splash-skip" onclick="dismissSplash()">TAP TO ENTER</div>
 </div>
 
