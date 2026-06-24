@@ -256,14 +256,16 @@
     }
     .card-strip-wrap.collapsed { transform: translateY(calc(100% - 36px)); }
 
-    /* Handle bar — mobile only */
+    /* Handle bar */
     .strip-handle {
-      display: none; align-items: center; justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       padding: 6px 12px 4px;
       position: relative;
     }
+    /* Drag pill — mobile only */
+    .strip-pill { display: none; }
     @media (max-width: 640px) {
-      .strip-handle { display: flex; }
+      .strip-pill { display: block; }
     }
     .strip-pill {
       width: 36px; height: 4px; border-radius: 2px;
