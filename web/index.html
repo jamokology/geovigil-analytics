@@ -832,7 +832,7 @@ const TEXTS = {
     subtitle:             "Detección de pistas clandestinas · Perú",
     loading:              "cargando…",
     strip_hide:           "Ocultar",
-    strip_show:           "Mostrar detecciones",
+    strip_show:           "Mostrar",
     zoom_in:              "Detalle",
     zoom_out:             "General",
     btn_maps:             "Maps",
@@ -915,7 +915,7 @@ const TEXTS = {
     subtitle:             "Clandestine airstrip detection · Peru",
     loading:              "loading…",
     strip_hide:           "Hide",
-    strip_show:           "Show detections",
+    strip_show:           "Show",
     zoom_in:              "Detail",
     zoom_out:             "Overview",
     btn_maps:             "Maps",
@@ -1744,6 +1744,9 @@ function syncSlider(source) {
 function updateMetrics() {
   const c = `${filteredIndices.length} / ${DETECTIONS.length}`;
   document.getElementById("sb-metric").textContent = c;
+  // Hide strip entirely when no cards are visible
+  const wrap = document.getElementById("card-strip-wrap");
+  if (wrap) wrap.style.display = filteredIndices.length === 0 ? 'none' : '';
 }
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
