@@ -45,12 +45,6 @@
     /* ── Main ── */
     .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
-    /* ── Header ── */
-    .header { padding: 14px 20px 12px; border-bottom: 1px solid var(--border); background: var(--bg); flex-shrink: 0; }
-    .header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .header-center { flex: 1; text-align: center; }
-    .title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 600; letter-spacing: 0.05em; line-height: 1.0; color: var(--text); }
-    .subtitle { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
     .sidebar-logo { width: 100%; max-width: 200px; height: auto; display: block; margin: 0 auto 4px; }
 
     /* ── Filter bar ── */
@@ -302,7 +296,8 @@
     }
     .splash.fade-out { opacity: 0; pointer-events: none; }
     .splash-img {
-      width: min(90vw, 860px);
+      width: min(96vw, 96vh * 2.5);
+      max-width: 1400px;
       height: auto;
       animation: splashIn 0.6s ease both;
     }
@@ -310,35 +305,18 @@
       from { opacity: 0; transform: scale(0.97); }
       to   { opacity: 1; transform: scale(1); }
     }
-    .splash-bar-wrap {
-      margin-top: 36px;
-      width: min(90vw, 860px);
-      height: 2px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 1px;
-      overflow: hidden;
-    }
-    .splash-bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #4da6e8, #58a6ff);
-      border-radius: 1px;
-      transition: width 2.4s linear;
-    }
     .splash-skip {
-      margin-top: 20px;
+      margin-top: 24px;
       font-size: 0.72rem;
-      color: rgba(255,255,255,0.28);
-      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       cursor: pointer;
       transition: color 0.2s;
       user-select: none;
+      animation: splashIn 1.2s ease both;
     }
-    .splash-skip:hover { color: rgba(255,255,255,0.6); }
-
-    /* ── Header logo image ── */
-    .header-logo { height: 40px; width: auto; display: block; margin: 0 auto; }
+    .splash-skip:hover { color: rgba(255,255,255,0.65); }
 
     /* ── Location pulse ── */
     @keyframes pulse { 0%,100%{transform:scale(1);opacity:.9} 50%{transform:scale(1.6);opacity:.3} }
@@ -360,7 +338,6 @@
 <body>
 <div class="splash" id="splash">
   <img src="geovigil_analytics_logo_black_large.png" alt="GeoVigil Analytics" class="splash-img" draggable="false">
-  <div class="splash-bar-wrap"><div class="splash-bar" id="splash-bar"></div></div>
   <div class="splash-skip" onclick="dismissSplash()">TAP TO ENTER</div>
 </div>
 
@@ -447,23 +424,10 @@
 
   <!-- Main -->
   <div class="main">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-row">
-        <button class="btn-icon" onclick="toggleSidebar()" id="btn-menu">☰</button>
-        <div class="header-center">
-          <img src="geovigil_analytics_logo_transparent_forblack.png" alt="GeoVigil Analytics" class="header-logo">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch">
-          <button class="btn-header" onclick="toggleLang()" id="btn-lang-top">🇬🇧 English</button>
-          <button class="btn-header" onclick="toggleMapTile()" id="btn-tile">🗺 Street</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Filter bar -->
     <div class="filter-bar">
       <div class="filter-bar-row">
+        <button class="btn-icon" onclick="toggleSidebar()" id="btn-menu" style="flex-shrink:0">☰</button>
         <label data-i18n="slider_label">Confianza mínima (%)</label>
         <input type="range" id="main-slider" min="0" max="100" value="50" step="5" oninput="syncSlider('main')">
         <div class="badge" id="main-conf-val">50%</div>
@@ -492,8 +456,7 @@
 <script>
 // ── Splash ────────────────────────────────────────────────────────────────
 (function () {
-  const DURATION = 2500; // ms before auto-dismiss
-  let dismissed  = false;
+  let dismissed = false;
 
   function dismissSplash() {
     if (dismissed) return;
@@ -504,16 +467,6 @@
   }
   window.dismissSplash = dismissSplash;
 
-  // Start progress bar after paint
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const bar = document.getElementById('splash-bar');
-    if (bar) bar.style.width = '100%';
-  }));
-
-  // Auto-dismiss
-  setTimeout(dismissSplash, DURATION);
-
-  // Also dismiss on any keydown / click on the splash
   document.getElementById('splash').addEventListener('click', dismissSplash);
   document.addEventListener('keydown', dismissSplash, { once: true });
 })();
@@ -633,8 +586,7 @@ function applyLang() {
     const key = el.getAttribute("data-i18n");
     if (t[key] !== undefined) el.textContent = t[key];
   });
-  document.getElementById("btn-lang-sb").textContent  = t.lang_toggle;
-  document.getElementById("btn-lang-top").textContent = t.lang_toggle;
+  document.getElementById("btn-lang-sb").textContent = t.lang_toggle;
   document.documentElement.lang = lang;
   refreshSelectLabels();
   forceRender();
@@ -667,17 +619,14 @@ TILES.satellite.addTo(map);
 let currentTile = "satellite";
 
 function toggleMapTile() {
-  const btn   = document.getElementById("btn-tile");
   const btnSb = document.getElementById("btn-tile-sb");
   if (currentTile === "satellite") {
     map.removeLayer(TILES.satellite); TILES.street.addTo(map);
     currentTile = "street";
-    if (btn)   btn.textContent   = "🛰 Satellite";
     if (btnSb) btnSb.textContent = "🛰 Satellite";
   } else {
     map.removeLayer(TILES.street); TILES.satellite.addTo(map);
     currentTile = "satellite";
-    if (btn)   btn.textContent   = "🗺 Street";
     if (btnSb) btnSb.textContent = "🗺 Street";
   }
 }
