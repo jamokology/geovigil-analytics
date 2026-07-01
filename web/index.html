@@ -767,7 +767,7 @@
 
     <div class="about-section">
       <h2 data-i18n="about_s3_h">Puntuación de confianza</h2>
-      <p data-i18n="about_s3_p">El modelo de IA asigna una puntuación de 0 a 100% a cada detección.</p>
+      <p data-i18n="about_s3_p">El significado de la puntuación depende de la fuente: para Planet NICFI, es la confianza del modelo de IA en la forma detectada (pista confirmada). Para Sentinel-2, es una probabilidad calibrada de que un cambio NDVI corresponda a una pista (alerta temprana, no confirmada).</p>
       <div class="about-conf-bars">
         <div class="about-conf-bar"><div class="bar" style="width:56px;background:#E53935"></div><span data-i18n="about_s3_high">Alta (≥ 85%)</span></div>
         <div class="about-conf-bar"><div class="bar" style="width:40px;background:#FB8C00"></div><span data-i18n="about_s3_mid">Media (70–84%)</span></div>
@@ -785,8 +785,8 @@
 
     <div class="about-section">
       <h2 data-i18n="about_s5_h">Metodología</h2>
-      <p data-i18n="about_s5_p1">Dos modelos de detección de objetos independientes, entrenados con imágenes de cada fuente respectiva, generan detecciones por separado.</p>
-      <p data-i18n="about_s5_p2">Los resultados se fusionan mediante Weighted Boxes Fusion (WBF). Las detecciones a menos de 500 m de un registro existente actualizan su fecha de confirmación en lugar de crear un nuevo registro.</p>
+      <p data-i18n="about_s5_p1">Planet NICFI es la única fuente que confirma una pista mediante clasificación de forma (modelo de IA). Sentinel-2 solo detecta cambios de vegetación (NDVI) como alerta temprana, sin analizar la forma del objeto.</p>
+      <p data-i18n="about_s5_p2">Los resultados no se fusionan numéricamente (no se usa Weighted Boxes Fusion): la confirmación de Planet NICFI siempre prevalece sobre una alerta de Sentinel-2 en la misma ubicación. Las detecciones a menos de 500 m de un registro existente actualizan su fecha de confirmación en lugar de crear un nuevo registro.</p>
     </div>
 
     <div class="about-section">
@@ -852,14 +852,16 @@ const TEXTS = {
     roads_loading:        "Cargando vías…",
     roads_error:          "⚠ Error al cargar vías",
     roads_label:          "Vías",
-    source_ensemble:      "Combinado",
-    tip_conf:             "Confianza del modelo de IA",
+    tip_conf_nicfi:       "Confianza de clasificación de forma (Planet NICFI, confirmado)",
+    tip_conf_sentinel:    "Confianza calibrada de detección de cambios (Sentinel-2, no confirmado)",
+    tip_source_nicfi:     "Detección de forma confirmada por IA",
+    tip_source_sentinel:  "Alerta temprana por cambio NDVI — sin confirmar",
     tip_confirmed_at:     "Última confirmación",
     tip_detected_at:      "Primera detección",
     tip_coord:            "Coordenadas geográficas",
     tip_district:         "Distrito / Provincia",
-    tip_active:           "Detectado o redetectado en los últimos 3 meses",
-    tip_unconfirmed:      "Sin detección en los últimos 3 meses",
+    tip_active:           "Confirmado por Planet NICFI en los últimos 3 meses",
+    tip_unconfirmed:      "Planet NICFI hace 3–6 meses, o solo Sentinel-2 en los últimos 6 meses",
     tip_copy:             "Copiar coordenadas",
     tip_maps:             "Abrir en Google Maps",
     tip_gpx:              "Descargar archivo GPX",
@@ -887,7 +889,7 @@ const TEXTS = {
     about_s2_unconf:      "No confirmado — Sin nueva detección en los últimos 3–6 meses.",
     about_s2_inactive:    "Inactivo — Sin detección durante más de 6 meses. Oculto en el mapa, pero conservado en el historial.",
     about_s3_h:           "Puntuación de confianza",
-    about_s3_p:           "El modelo de IA asigna una puntuación de 0 a 100% a cada detección según la claridad de la firma visual del objeto.",
+    about_s3_p:           "El significado de la puntuación depende de la fuente: para Planet NICFI, es la confianza del modelo de IA en la forma detectada (pista confirmada). Para Sentinel-2, es una probabilidad calibrada de que un cambio NDVI corresponda a una pista (alerta temprana, no confirmada).",
     about_s3_high:        "Alta (≥ 85%) — Alta probabilidad de pista activa.",
     about_s3_mid:         "Media (70–84%) — Requiere verificación en campo.",
     about_s3_low:         "Baja (< 70%) — Posible candidato, baja certeza.",
@@ -895,8 +897,8 @@ const TEXTS = {
     about_s4_s2:          "Resolución 10 m · Revisita cada 5 días · Filtrado ≤ 20% de nubosidad",
     about_s4_pl:          "Resolución 4.77 m · Mosaico mensual libre de nubes · Cobertura de bosques tropicales",
     about_s5_h:           "Metodología",
-    about_s5_p1:          "Dos modelos de detección de objetos independientes, entrenados con imágenes de cada fuente respectiva, generan detecciones por separado.",
-    about_s5_p2:          "Los resultados se fusionan mediante Weighted Boxes Fusion (WBF) para producir una detección consolidada con mayor precisión que cualquier modelo individual. Las detecciones a menos de 500 m de un registro existente actualizan su fecha de confirmación en lugar de crear un nuevo registro.",
+    about_s5_p1:          "Planet NICFI es la única fuente que confirma una pista mediante clasificación de forma (modelo de IA). Sentinel-2 solo detecta cambios de vegetación (NDVI) como alerta temprana, sin analizar la forma del objeto.",
+    about_s5_p2:          "Los resultados no se fusionan numéricamente (no se usa Weighted Boxes Fusion): la confirmación de Planet NICFI siempre prevalece sobre una alerta de Sentinel-2 en la misma ubicación. Las detecciones a menos de 500 m de un registro existente actualizan su fecha de confirmación en lugar de crear un nuevo registro.",
     about_s6_h:           "Actualización de datos",
     about_s6_p:           "El pipeline de detección se ejecuta semanalmente desde una estación de trabajo dedicada. Los resultados se publican automáticamente en este tablero tras cada ejecución.",
   },
@@ -935,14 +937,16 @@ const TEXTS = {
     roads_loading:        "Loading roads…",
     roads_error:          "⚠ Failed to load roads",
     roads_label:          "Roads",
-    source_ensemble:      "Ensemble",
-    tip_conf:             "AI model confidence score",
+    tip_conf_nicfi:       "Shape-classification confidence (Planet NICFI, confirmed)",
+    tip_conf_sentinel:    "Calibrated change-detection confidence (Sentinel-2, unconfirmed)",
+    tip_source_nicfi:     "AI-confirmed shape detection",
+    tip_source_sentinel:  "Early warning from NDVI change — not yet confirmed",
     tip_confirmed_at:     "Last confirmed",
     tip_detected_at:      "First detected",
     tip_coord:            "Geographic coordinates",
     tip_district:         "District / Province",
-    tip_active:           "Detected or re-detected within the last 3 months",
-    tip_unconfirmed:      "No detection within the last 3 months",
+    tip_active:           "Confirmed by Planet NICFI within the last 3 months",
+    tip_unconfirmed:      "Planet NICFI 3–6 months ago, or Sentinel-2-only within the last 6 months",
     tip_copy:             "Copy coordinates",
     tip_maps:             "Open in Google Maps",
     tip_gpx:              "Download GPX file",
@@ -970,7 +974,7 @@ const TEXTS = {
     about_s2_unconf:      "Unconfirmed — No new detection in the past 3–6 months.",
     about_s2_inactive:    "Inactive — No detection for over 6 months. Hidden on the map but retained in the historical record.",
     about_s3_h:           "Confidence Score",
-    about_s3_p:           "The AI model assigns a score from 0 to 100% to each detection based on the clarity of the object's visual signature.",
+    about_s3_p:           "What the score means depends on the source: for Planet NICFI, it's the AI model's confidence in the detected shape (confirmed airstrip). For Sentinel-2, it's a calibrated probability that an NDVI change corresponds to an airstrip (early warning, not confirmed).",
     about_s3_high:        "High (≥ 85%) — High probability of an active airstrip.",
     about_s3_mid:         "Medium (70–84%) — Field verification recommended.",
     about_s3_low:         "Low (< 70%) — Possible candidate, low certainty.",
@@ -978,8 +982,8 @@ const TEXTS = {
     about_s4_s2:          "10 m resolution · 5-day revisit · ≤ 20% cloud cover filter",
     about_s4_pl:          "4.77 m resolution · Monthly cloud-free mosaic · Tropical forest coverage",
     about_s5_h:           "Methodology",
-    about_s5_p1:          "Two independent object detection models, each trained on imagery from its respective source, generate detections separately.",
-    about_s5_p2:          "Results are merged using Weighted Boxes Fusion (WBF) to produce a consolidated detection with higher accuracy than either model alone. Detections within 500 m of an existing record update its confirmation date rather than creating a new entry.",
+    about_s5_p1:          "Planet NICFI is the only source that confirms an airstrip via shape classification (AI model). Sentinel-2 only detects vegetation change (NDVI) as an early warning, without analyzing the object's shape.",
+    about_s5_p2:          "Results are never numerically merged (no Weighted Boxes Fusion): a Planet NICFI confirmation always takes precedence over a Sentinel-2 alert at the same location. Detections within 500 m of an existing record update its confirmation date rather than creating a new entry.",
     about_s6_h:           "Data Updates",
     about_s6_p:           "The detection pipeline runs weekly from a dedicated workstation. Results are automatically published to this dashboard after each run.",
   },
@@ -1315,7 +1319,6 @@ let selectedSources = new Set(); // empty = all
 function populateSourceChecklist() {
   const list    = document.getElementById("source-checklist");
   if (!list) return;
-  const t       = TEXTS[lang];
   const sources = [...new Set(DETECTIONS.map(d => d.source).filter(Boolean))].sort();
 
   list.querySelectorAll(".src-item").forEach(el => el.remove());
@@ -1323,10 +1326,9 @@ function populateSourceChecklist() {
   sources.forEach(s => {
     const item = document.createElement("div");
     item.className = "check-item src-item";
-    const label = s.toLowerCase().startsWith("ensemble") ? t.source_ensemble : s;
     const checked = selectedSources.size === 0 || selectedSources.has(s);
     item.innerHTML = `<input type="checkbox" id="src-${s.replace(/\W/g,'_')}" ${checked ? "checked" : ""} onchange="onSrcCheck()" data-source="${s}">
-                      <label for="src-${s.replace(/\W/g,'_')}">${label}</label>`;
+                      <label for="src-${s.replace(/\W/g,'_')}">${s}</label>`;
     list.appendChild(item);
   });
 
@@ -1398,12 +1400,13 @@ function buildCard(detIdx) {
   el.dataset.detidx = detIdx;
   const dotClass  = d.status === 'active' ? 'card-dot-active' : 'card-dot-unconfirmed';
   const dotTip    = d.status === 'active' ? t.tip_active : t.tip_unconfirmed;
-  const isEnsemble   = d.source && d.source.toLowerCase().startsWith('ensemble');
-  const sourceLabel  = isEnsemble ? t.source_ensemble : (d.source || '—');
-  const sourceTip    = isEnsemble ? 'Sentinel-2 + Planet Basemaps' : '';
+  const isNicfi     = d.source === 'Planet NICFI';
+  const sourceLabel = d.source || '—';
+  const sourceTip   = isNicfi ? t.tip_source_nicfi : t.tip_source_sentinel;
+  const confTip     = isNicfi ? t.tip_conf_nicfi : t.tip_conf_sentinel;
   el.innerHTML = `
     <div class="card-header">
-      <div class="card-conf has-tip" data-tip="${t.tip_conf}" style="color:${color}">${(d.conf*100).toFixed(1)}%</div>
+      <div class="card-conf has-tip" data-tip="${confTip}" style="color:${color}">${(d.conf*100).toFixed(1)}%</div>
       <span class="card-dot ${dotClass} has-tip" data-tip="${dotTip}" style="text-decoration:none"></span>
     </div>
     <div class="card-row">🔄 <span class="has-tip" data-tip="${t.tip_confirmed_at}">${d.confirmed_at}</span></div>
