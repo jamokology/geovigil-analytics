@@ -18,3 +18,8 @@ wheels/
 
 # Wrangler local state
 .wrangler/
+
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
