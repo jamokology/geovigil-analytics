@@ -1,0 +1,19 @@
+name = "geovigil-review"
+pages_build_output_dir = "public"
+compatibility_date = "2026-06-01"
+
+# Create with: wrangler d1 create geovigil-review
+[[d1_databases]]
+binding = "DB"
+database_name = "geovigil-review"
+database_id = "16306d93-b997-49b3-8b25-46361744d058"
+
+# Create with: wrangler r2 bucket create geovigil-review-images
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "geovigil-review-images"
+
+# Set with: wrangler pages secret put REVIEW_PASSPHRASE
+# (also set REVIEW_PASSPHRASE in the Cloudflare Pages dashboard for the
+# production/preview environment, since `wrangler pages secret put` targets
+# whichever environment you specify)

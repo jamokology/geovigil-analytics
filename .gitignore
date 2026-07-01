@@ -15,3 +15,6 @@ wheels/
 # Claude Code settings
 .claude/
 .claudeignore
+
+# Wrangler local state
+.wrangler/

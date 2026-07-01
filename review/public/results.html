@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GeoVigil Analytics — Review Results</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 16px;
+  }
+  a { color: #58a6ff; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; color: #8b949e; margin: 28px 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .top-link { font-size: 13px; margin-bottom: 12px; display: inline-block; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+  }
+  .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .card .value { font-size: 22px; font-weight: 700; }
+  .card .label { font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .card.true .value { color: #3fb950; }
+  .card.false .value { color: #f85149; }
+  .card.hold .value { color: #d29922; }
+  .card.pending .value { color: #8b949e; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid #21262d;
+  }
+  th { color: #8b949e; font-weight: 500; }
+
+  .bar-row { margin-bottom: 10px; }
+  .bar-row .bar-label { font-size: 13px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .bar-track {
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+    background: #21262d;
+  }
+  .bar-true { background: #3fb950; }
+  .bar-false { background: #f85149; }
+  .bar-pending { background: #30363d; }
+
+  #loading, #error { color: #8b949e; font-size: 13px; }
+  #error { color: #f85149; }
+</style>
+</head>
+<body>
+
+<a class="top-link" href="/">&larr; Back to review</a>
+<h1>Review Results</h1>
+<div id="loading">Loading...</div>
+<div id="error" style="display:none;"></div>
+
+<div id="content" style="display:none;">
+  <div class="cards" id="summary-cards"></div>
+
+  <h2>Progress by batch</h2>
+  <div id="batch-bars"></div>
+
+  <h2>By reviewer</h2>
+  <table>
+    <thead><tr><th>Reviewer</th><th>True</th><th>False</th><th>Hold</th></tr></thead>
+    <tbody id="reviewer-rows"></tbody>
+  </table>
+
+  <h2>Recent activity</h2>
+  <table>
+    <thead><tr><th>Candidate</th><th>Reviewer</th><th>Label</th><th>When</th></tr></thead>
+    <tbody id="recent-rows"></tbody>
+  </table>
+</div>
+
+<script>
+async function load() {
+  const res = await fetch("/api/results");
+  if (res.status === 401) {
+    window.location.href = "/";
+    return;
+  }
+  if (!res.ok) {
+    document.getElementById("loading").style.display = "none";
+    const err = document.getElementById("error");
+    err.style.display = "block";
+    err.textContent = "Failed to load results.";
+    return;
+  }
+  const data = await res.json();
+  render(data);
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("content").style.display = "block";
+}
+
+function render(data) {
+  const t = data.totals;
+  document.getElementById("summary-cards").innerHTML = `
+    <div class="card"><div class="value">${t.total}</div><div class="label">Total candidates</div></div>
+    <div class="card true"><div class="value">${t.true_count}</div><div class="label">True</div></div>
+    <div class="card false"><div class="value">${t.false_count}</div><div class="label">False</div></div>
+    <div class="card pending"><div class="value">${t.pending}</div><div class="label">Pending</div></div>
+    <div class="card hold"><div class="value">${t.hold_events}</div><div class="label">Hold events</div></div>
+  `;
+
+  document.getElementById("batch-bars").innerHTML = data.by_batch.map((b) => {
+    const truePct = b.total ? (b.true_count / b.total) * 100 : 0;
+    const falsePct = b.total ? (b.false_count / b.total) * 100 : 0;
+    const pendingPct = 100 - truePct - falsePct;
+    return `
+      <div class="bar-row">
+        <div class="bar-label"><span>${escapeHtml(b.batch)}</span><span>${b.true_count + b.false_count}/${b.total} reviewed</span></div>
+        <div class="bar-track">
+          <div class="bar-true" style="width:${truePct}%"></div>
+          <div class="bar-false" style="width:${falsePct}%"></div>
+          <div class="bar-pending" style="width:${pendingPct}%"></div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("reviewer-rows").innerHTML = data.by_reviewer.map((r) => `
+    <tr>
+      <td>${escapeHtml(r.reviewer_name)}</td>
+      <td>${r.true || 0}</td>
+      <td>${r.false || 0}</td>
+      <td>${r.hold || 0}</td>
+    </tr>
+  `).join("");
+
+  document.getElementById("recent-rows").innerHTML = data.recent.map((r) => `
+    <tr>
+      <td>${escapeHtml(r.candidate_id)}</td>
+      <td>${escapeHtml(r.reviewer_name)}</td>
+      <td>${escapeHtml(r.label)}</td>
+      <td>${escapeHtml(r.reviewed_at)}</td>
+    </tr>
+  `).join("");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+load();
+</script>
+</body>
+</html>
