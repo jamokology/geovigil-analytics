@@ -187,7 +187,7 @@ Reorganizado en 2 pasos según su objetivo. El Paso 2 es "calibración de la pro
 - **Limitación conocida (respecto a 2a):** en casos donde la revegetación parcial avanza después de la tala, si el intervalo es más largo (por haberse omitido por nubes), la magnitud de cambio puede ser menor que en un intervalo semanal, y es posible que los parámetros optimizados para intervalos semanales no la capturen. No se resuelve en esta fase; se registra como limitación conocida
 - **Método de muestreo de 2b y 2c:** las 500 imágenes de 2a se mantienen como muestreo aleatorio. Si la tasa de solapamiento natural con GFW es extremadamente alta (por ejemplo, 480 de 500 imágenes se solapan), solo con 2a los casos de "Sentinel-2 exclusivo, no detectado por GFW" serían pocos (por ejemplo, unas 20 imágenes), insuficientes para verificar estadísticamente el efecto de boost; por eso se extrae 2c de forma intencional y separada. El cálculo de calibración del umbral de 2a se mantiene sin distorsionar el muestreo aleatorio; 2b y 2c se tratan como conteos separados
 
-**Paso 3: recolección de datos de entrenamiento YOLO (usando NICFI, 1000 imágenes en total; 3a y 3b pueden realizarse en paralelo, 3b requiere que el Paso 2 esté completo)**
+**Paso 3: recolección de datos de entrenamiento YOLO (usando NICFI, 1834 imágenes en total entre 3a, 3b y 3c; 3a y 3b pueden realizarse en paralelo, 3b requiere que el Paso 2 esté completo)**
 
 | Subpaso | Contenido | Cantidad |
 |---|---|---|
@@ -204,6 +204,18 @@ Objetivo: las ubicaciones de las 178 imágenes originales + las ubicaciones conf
 - **No se asigna la etiqueta Positive de forma automática.** Aunque la ubicación fue confirmada como verdadero positivo en su momento, en los cortes de 3/6/9 meses antes la pista puede no estar construida todavía o puede estar cubierta por vegetación y ser indistinguible, por lo que sería False. Las imágenes adicionales se envían a la **misma revisión T/F del personal que en los Pasos 2 y 3** (verificación completa, no una comprobación ligera)
 - **La división train/val se realiza por ubicación.** Si las imágenes de múltiples fechas de la misma ubicación se distribuyen aleatoriamente entre train y val, en la práctica se estaría usando el mismo lugar tanto para entrenar como para validar, contaminando la evaluación de la capacidad de generalización
 - Se eligió el intervalo fijo de 3/6/9 meses porque los datos de entrenamiento originales (178 imágenes, Pasos 3a/3b) correspondían a imágenes relativamente recientes; el objetivo es añadir variación temporal retrocediendo desde ese punto. La diversidad de estación/nubosidad se obtiene como beneficio secundario, pero el criterio de selección es el intervalo fijo, no una selección arbitraria
+- Igual que en 3a y 3b, tanto las etiquetas True como False resultantes se usan como datos de entrenamiento (ver el valor de las muestras negativas en "Estrategia de ampliación del conjunto de datos" más arriba), por lo que el número de imágenes revisadas equivale al número de imágenes incorporadas al entrenamiento de YOLO
+
+**Resumen de cifras**
+
+| Categoría | Desglose | Cantidad |
+|---|---|---|
+| Revisión (Paso 2: calibración de la lógica de alerta temprana) | 2a 500 + 2b 100 + 2c 100 | 700 imágenes |
+| Revisión (Paso 3: recolección de datos de entrenamiento YOLO) | 3a 500 + 3b 500 + 3c 834 (estimado) | 1834 imágenes |
+| **Total de revisión** | Paso 2 + Paso 3 | **2534 imágenes** |
+| Imágenes incorporadas al entrenamiento de YOLO | 178 originales + 3a 500 + 3b 500 + 3c 834 (estimado) | **2012 imágenes** |
+
+*El Paso 2 (700 imágenes) tiene como objetivo calibrar la lógica de alerta temprana de Sentinel-2/GFW y no se usa para entrenar YOLO, por lo que el total de revisión y el total incorporado al entrenamiento no coinciden. Las 834 imágenes de 3c son una estimación (variará según la cantidad real de TRUE confirmados tras el Paso 2a).
 
 **Paso 4: recálculo de parámetros y calibración de la confianza variable**
 - Se agrupan las 500 imágenes de 2a y las 500 de 3b (1000 en total, con confirmación NICFI, tratadas con el mismo nivel de fiabilidad de etiqueta) y se recalcula el umbral de Sentinel-2 con 99.9% de confianza. Es posible que resulte más laxo que con 2a por sí sola
@@ -212,7 +224,7 @@ Objetivo: las ubicaciones de las 178 imágenes originales + las ubicaciones conf
 - Se comparan 2a (solapamiento con GFW) y 2c para verificar si el boost de confianza en detección simultánea Sentinel-2×GFW puede justificarse estadísticamente (por ejemplo, mediante regresión logística de `P(TP | margen de Sentinel-2, características de GFW)`). Si no puede justificarse, no se adopta el boost
 - **La iteración se limita a una sola vez:** no se repetirá el proceso de relajar aún más el umbral y volver a recolectar candidatos, ya que la relación costo-beneficio se deteriora rápidamente. La próxima revisión queda a cargo del ciclo de reentrenamiento dentro de varios años
 
-**Total de imágenes a revisar: Paso 2 (700) + Paso 3 (1000) = 1700 imágenes.** La ampliación multitemporal del Paso 3c (aprox. 278 ubicaciones × 3 fechas ≈ 834 imágenes estimadas, con revisión T/F completa) se contabiliza aparte de las 1700 anteriores
+**Total de imágenes a revisar: Paso 2 (700) + Paso 3 (1834, incluyendo 3c) = 2534 imágenes.** Ver el desglose detallado en "Resumen de cifras" más arriba
 
 ## Temas pendientes
 
